@@ -399,21 +399,44 @@ function AnalyzeContent() {
   const tier = (searchParams.get("tier") ?? "free") as "free" | "full";
   const paid = searchParams.get("paid") === "1";
 
-  const [status, setStatus] = useState("warming up the roast machine…");
-  const [dims, setDims]     = useState<DimensionResult[]>([]);
-  const [done, setDone]     = useState(false);
-  const [score, setScore]   = useState<number | null>(null);
-  const [error, setError]   = useState<string | null>(null);
-  const [shot, setShot]     = useState<string | null>(null);
-  const [taunt, setTaunt]   = useState(0);
+  const upload = searchParams.get("upload") === "1";
+
+  const [status, setStatus]   = useState("warming up the roast machine…");
+  const [dims, setDims]       = useState<DimensionResult[]>([]);
+  const [done, setDone]       = useState(false);
+  const [score, setScore]     = useState<number | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [shot, setShot]       = useState<string | null>(null);
+  const [uploadName, setUploadName] = useState<string | null>(null);
+  const [taunt, setTaunt]     = useState(0);
   const started = useRef(false);
 
   useEffect(() => {
-    if (!url || started.current) return;
+    if (started.current) return;
+    if (!upload && !url) return;
     started.current = true;
+
     const form = new FormData();
-    form.append("url", url); form.append("tier", tier);
+    form.append("tier", tier);
     if (paid) form.append("paid", "1");
+
+    if (upload) {
+      // Read base64 from sessionStorage (stored by hero screenshot tab)
+      try {
+        const raw = sessionStorage.getItem("roastlab_upload");
+        if (!raw) { setError("No screenshot found. Please upload again."); return; }
+        const { base64, mimeType, name } = JSON.parse(raw) as { base64: string; mimeType: string; name: string };
+        sessionStorage.removeItem("roastlab_upload");
+        form.append("imageBase64", base64);
+        form.append("imageMimeType", mimeType);
+        setUploadName(name);
+      } catch {
+        setError("Failed to read uploaded screenshot.");
+        return;
+      }
+    } else {
+      form.append("url", url);
+    }
     const ctrl = new AbortController();
     fetch("/api/analyze", { method: "POST", body: form, signal: ctrl.signal })
       .then(async res => {
@@ -446,9 +469,12 @@ function AnalyzeContent() {
     return () => clearInterval(t);
   }, [done, error]);
 
-  if (!url) return (
+  if (!url && !upload) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Link href="/" style={{ color: "#FF2D55", fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}><ArrowLeft size={14}/> back</Link>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ color: "#5A5A80", marginBottom: 12, fontSize: 14 }}>No URL or screenshot provided.</p>
+        <Link href="/" style={{ color: "#FF2D55", fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}><ArrowLeft size={14}/> back</Link>
+      </div>
     </div>
   );
 
@@ -476,10 +502,16 @@ function AnalyzeContent() {
         </div>
       </div>
 
-      {/* URL */}
-      <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#DDDDF0", textDecoration: "none", fontFamily: "monospace", marginBottom: 20, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {url} <ExternalLink size={10} style={{ color: "#3A3A5E", flexShrink: 0 }}/>
-      </a>
+      {/* URL or upload name */}
+      {upload ? (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#DDDDF0", fontFamily: "monospace", marginBottom: 20 }}>
+          <span style={{ fontSize: 14 }}>🖼️</span> {uploadName ?? "uploaded screenshot"}
+        </div>
+      ) : (
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#DDDDF0", textDecoration: "none", fontFamily: "monospace", marginBottom: 20, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {url} <ExternalLink size={10} style={{ color: "#3A3A5E", flexShrink: 0 }}/>
+        </a>
+      )}
 
       {/* Screenshot */}
       <AnimatePresence>{shot && <SiteFrame imgUrl={shot} siteUrl={url} />}</AnimatePresence>

@@ -27,6 +27,9 @@ export async function POST(req: NextRequest) {
         const url = (formData.get('url') as string | null) ?? undefined;
         const tier = ((formData.get('tier') as string | null) ?? 'free') as 'free' | 'full';
         const paid = formData.get('paid') === '1';
+        // base64 path — used when hero uploads screenshot via sessionStorage relay
+        const rawBase64 = formData.get('imageBase64') as string | null;
+        const rawMime = (formData.get('imageMimeType') as string | null) ?? 'image/png';
 
         // Rate limit only for free (unpaid) requests
         if (!paid) {
@@ -46,7 +49,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        if (!file && !url) {
+        if (!file && !url && !rawBase64) {
           send({ type: 'error', payload: { message: 'Provide a screenshot or URL.' } });
           controller.close();
           return;
@@ -55,7 +58,13 @@ export async function POST(req: NextRequest) {
         let imageBase64: string;
         let mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
 
-        if (file) {
+        if (rawBase64) {
+          // Uploaded via sessionStorage relay (hero screenshot tab)
+          imageBase64 = rawBase64;
+          mimeType = (['image/jpeg','image/png','image/webp'].includes(rawMime)
+            ? rawMime : 'image/png') as 'image/jpeg' | 'image/png' | 'image/webp';
+          send({ type: 'status', payload: { message: 'Got your screenshot, loading roast cannon…' } });
+        } else if (file) {
           const allowed = ['image/jpeg', 'image/png', 'image/webp'];
           if (!allowed.includes(file.type)) {
             send({ type: 'error', payload: { message: 'Use JPEG, PNG, or WebP.' } });

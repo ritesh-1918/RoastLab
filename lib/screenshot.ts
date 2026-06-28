@@ -6,7 +6,8 @@ export async function captureScreenshot(url: string): Promise<{
   screenshotUrl: string;
 }> {
   // microlink without embed= returns JSON; with embed= returns raw image (breaks res.json())
-  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false`;
+  // fullPage=true captures the entire page height, not just the viewport
+  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.fullPage=true&screenshot.type=jpeg&screenshot.quality=80`;
 
   const res = await fetch(apiUrl, {
     headers: process.env.MICROLINK_API_KEY

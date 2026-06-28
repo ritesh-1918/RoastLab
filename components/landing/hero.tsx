@@ -158,6 +158,7 @@ export function Hero() {
               />
               <input
                 type="url"
+                id="hero-input"
                 placeholder="https://yoursite.com"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -209,11 +210,19 @@ export function Hero() {
                   const f = e.target.files?.[0] ?? null;
                   setFile(f);
                   if (f) {
-                    const fd = new FormData();
-                    fd.append("screenshot", f);
-                    fd.append("tier", "free");
-                    window.location.href = "/analyze?upload=1";
-                    // store file in sessionStorage workaround — handled via URL+file upload form
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string;
+                      // strip "data:image/png;base64," prefix
+                      const base64 = dataUrl.split(",")[1];
+                      sessionStorage.setItem("roastlab_upload", JSON.stringify({
+                        base64,
+                        mimeType: f.type,
+                        name: f.name,
+                      }));
+                      router.push("/analyze?upload=1");
+                    };
+                    reader.readAsDataURL(f);
                   }
                 }}
               />
