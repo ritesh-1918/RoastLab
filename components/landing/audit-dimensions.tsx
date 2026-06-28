@@ -120,20 +120,19 @@ export function AuditDimensions() {
             style={{ color: "var(--text-dim)" }}
           >
             <Lock size={10} aria-hidden="true" />
-            Full report — $29
+            Full report — ₹2,499
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {locked.map((d, i) => (
               <motion.div
                 key={d.name}
-                className="p-5 rounded-xl border"
+                className="p-5 rounded-xl border relative overflow-hidden"
                 style={{
                   background: "var(--bg-card)",
                   borderColor: "var(--border-subtle)",
-                  opacity: 0.55,
                 }}
                 initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 0.55, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{
                   duration: 0.4,
@@ -141,14 +140,45 @@ export function AuditDimensions() {
                   ease: [0.16, 1, 0.3, 1],
                 }}
               >
+                {/* Blur overlay — locked effect */}
                 <div
-                  className="text-sm font-semibold mb-1.5 tracking-tight flex items-center gap-2"
-                  style={{ color: "var(--text-secondary)" }}
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-xl"
+                  style={{
+                    backdropFilter: "blur(3px)",
+                    WebkitBackdropFilter: "blur(3px)",
+                    background: "rgba(8,8,16,0.55)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1,
+                  }}
                 >
-                  <Lock size={11} aria-hidden="true" style={{ color: "var(--text-dim)" }} />
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "4px 10px",
+                      borderRadius: 99,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "var(--text-dim)",
+                    }}
+                  >
+                    <Lock size={10} aria-hidden="true" />
+                    Unlock full report
+                  </div>
+                </div>
+                <div
+                  className="text-sm font-semibold mb-1.5 tracking-tight"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {d.name}
                 </div>
-                <div className="text-xs leading-relaxed" style={{ color: "var(--text-dim)" }}>
+                <div className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   {d.desc}
                 </div>
               </motion.div>
