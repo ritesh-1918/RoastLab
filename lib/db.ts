@@ -9,12 +9,13 @@ import { neon } from '@neondatabase/serverless';
 let _sql: ReturnType<typeof neon> | null = null;
 
 function getDb() {
-  if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
-    return null;
-  }
-  if (!_sql) {
-    _sql = neon(process.env.DATABASE_URL);
-  }
+  // Vercel Neon integration prefixes vars with project name (roastlab_)
+  const url = process.env.DATABASE_URL
+    ?? process.env.roastlab_DATABASE_URL
+    ?? process.env.POSTGRES_URL
+    ?? process.env.roastlab_POSTGRES_URL;
+  if (!url || url.trim() === '') return null;
+  if (!_sql) _sql = neon(url);
   return _sql;
 }
 
