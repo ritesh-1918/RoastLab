@@ -5,6 +5,9 @@ import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
 import { getAllAudits, getGlobalStats } from '@/lib/db';
 import { ArrowLeft, ExternalLink, Users, BarChart3, Zap } from 'lucide-react';
+import { ScoreBadge } from '@/components/ui/score-badge';
+import { TierBadge } from '@/components/ui/tier-badge';
+import { relativeTime } from '@/lib/utils';
 
 const ADMIN_EMAIL = 'ritesh@gratiantechnologies.com';
 
