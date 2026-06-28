@@ -71,23 +71,30 @@ export async function POST(req: NextRequest) {
           imageBase64 = Buffer.from(bytes).toString('base64');
           mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
         } else {
-          send({ type: 'status', payload: { message: 'Capturing screenshot…' } });
+          send({ type: 'status', payload: { message: 'Taking screenshot of your crime scene…' } });
           const captured = await captureScreenshot(url!);
           imageBase64 = captured.base64;
           mimeType = captured.mimeType;
+          // Send screenshot URL so frontend can display the actual page
+          send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
         }
 
-        send({ type: 'status', payload: { message: 'Firing up the roast machine…' } });
+        send({ type: 'status', payload: { message: 'AI loading up the roast cannon…' } });
 
         const dimensions = tier === 'full' ? [...DIMENSIONS] : [...FREE_DIMENSIONS];
 
+        let dimCount = 0;
         const result = await runAudit({
           imageBase64,
           mimeType,
           dimensions,
           url,
-          onDimensionComplete: async (dimResult: DimensionResult) => {
-            send({ type: 'dimension', payload: dimResult });
+          onDimensionComplete: async (dimResult: DimensionResult, providerUsed?: string) => {
+            dimCount++;
+            send({
+              type: 'dimension',
+              payload: { ...dimResult, _provider: providerUsed, _seq: dimCount },
+            });
           },
         });
 

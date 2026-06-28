@@ -3,6 +3,7 @@ import { put } from '@vercel/blob';
 export async function captureScreenshot(url: string): Promise<{
   base64: string;
   mimeType: 'image/jpeg';
+  screenshotUrl: string;
 }> {
   // microlink without embed= returns JSON; with embed= returns raw image (breaks res.json())
   const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false`;
@@ -37,7 +38,7 @@ export async function captureScreenshot(url: string): Promise<{
   const buffer = await imgRes.arrayBuffer();
   const base64 = Buffer.from(buffer).toString('base64');
 
-  return { base64, mimeType: 'image/jpeg' };
+  return { base64, mimeType: 'image/jpeg', screenshotUrl };
 }
 
 export async function uploadScreenshot(

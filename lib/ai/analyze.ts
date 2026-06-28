@@ -198,7 +198,7 @@ export async function runAudit(params: {
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
   dimensions?: DimensionKey[];
   url?: string;
-  onDimensionComplete?: (result: DimensionResult) => void;
+  onDimensionComplete?: (result: DimensionResult, providerUsed?: string) => void;
 }): Promise<AuditResult> {
   const {
     imageBase64,
@@ -218,7 +218,7 @@ export async function runAudit(params: {
     );
     lastProvider = providerUsed;
     results.push(result);
-    onDimensionComplete?.(result);
+    onDimensionComplete?.(result, providerUsed);
   }
 
   const overallScore =
