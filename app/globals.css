@@ -78,6 +78,18 @@ html {
 }
 
 @theme inline {
+  /* RoastLab tokens exposed to Tailwind */
+  --color-ember:     var(--ember);
+  --color-ember-2:   var(--ember-2);
+  --color-sev-good:  var(--sev-good);
+  --color-sev-high:  var(--sev-high);
+  --color-sev-critical: var(--sev-critical);
+  --color-bg:        var(--bg);
+  --color-bg-1:      var(--bg-1);
+  --color-bg-card:   var(--bg-card);
+  --color-bg-hover:  var(--bg-hover);
+  --size-5_5: 1.375rem; /* 22px — for size-5.5 class */
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
