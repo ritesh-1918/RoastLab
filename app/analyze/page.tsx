@@ -4,279 +4,198 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  AlertTriangle, CheckCircle2, Info, Zap, ArrowLeft,
-  Flame, Lock, ExternalLink
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Zap, ArrowLeft, Flame, Lock, ExternalLink, CreditCard, Loader2 } from "lucide-react";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
-
 type Severity = "critical" | "high" | "medium" | "good";
+interface Finding { severity: Severity; title: string; quote?: string; action: string; }
+interface DimensionResult { dimension: string; score: number; summary: string; findings: Finding[]; }
 
-interface Finding {
-  severity: Severity;
-  title: string;
-  quote?: string;
-  action: string;
-}
-
-interface DimensionResult {
-  dimension: string;
-  score: number;
-  summary: string;
-  findings: Finding[];
-}
-
-/* ─── Constants ──────────────────────────────────────────────────────────── */
-
-const DIMENSION_LABELS: Record<string, string> = {
-  visual_design: "Visual Design",
-  copywriting: "Copywriting",
-  cta: "CTA",
-  ux_flow: "UX Flow",
-  accessibility: "Accessibility",
-  trust_signals: "Trust Signals",
-  mobile_experience: "Mobile",
-  performance: "Performance",
-  seo: "SEO",
+/* ─── Config ─────────────────────────────────────────────────────────────── */
+const LABELS: Record<string, string> = {
+  visual_design: "Visual Design", copywriting: "Copywriting", cta: "CTA",
+  ux_flow: "UX Flow", accessibility: "Accessibility", trust_signals: "Trust Signals",
+  mobile_experience: "Mobile", performance: "Performance", seo: "SEO",
 };
-
 const FREE_DIMS = ["visual_design", "copywriting", "cta"];
-
 const LOCKED_DIMS = [
-  { key: "ux_flow", label: "UX Flow" },
-  { key: "accessibility", label: "Accessibility" },
-  { key: "trust_signals", label: "Trust Signals" },
-  { key: "mobile_experience", label: "Mobile" },
-  { key: "performance", label: "Performance" },
-  { key: "seo", label: "SEO" },
+  { key: "ux_flow", label: "UX Flow", icon: "⟳" },
+  { key: "accessibility", label: "Accessibility", icon: "♿" },
+  { key: "trust_signals", label: "Trust Signals", icon: "🔒" },
+  { key: "mobile_experience", label: "Mobile", icon: "📱" },
+  { key: "performance", label: "Performance", icon: "⚡" },
+  { key: "seo", label: "SEO", icon: "🔍" },
 ];
 
-const SEV_CONFIG: Record<Severity, { color: string; bg: string; label: string; icon: React.ReactNode }> = {
-  critical: {
-    color: "#FF4D1C",
-    bg: "rgba(255,77,28,0.12)",
-    label: "Critical",
-    icon: <AlertTriangle size={11} />,
-  },
-  high: {
-    color: "#FF9F0A",
-    bg: "rgba(255,159,10,0.12)",
-    label: "High",
-    icon: <Zap size={11} />,
-  },
-  medium: {
-    color: "#F5C842",
-    bg: "rgba(245,200,66,0.12)",
-    label: "Medium",
-    icon: <Info size={11} />,
-  },
-  good: {
-    color: "#34C759",
-    bg: "rgba(52,199,89,0.12)",
-    label: "Good",
-    icon: <CheckCircle2 size={11} />,
-  },
+const SEV: Record<Severity, { color: string; glow: string; bg: string; label: string; icon: React.ReactNode }> = {
+  critical: { color: "#FF4D1C", glow: "rgba(255,77,28,0.2)", bg: "rgba(255,77,28,0.1)", label: "Critical", icon: <AlertTriangle size={10} strokeWidth={2.5}/> },
+  high:     { color: "#FF9F0A", glow: "rgba(255,159,10,0.2)", bg: "rgba(255,159,10,0.1)", label: "High",     icon: <Zap size={10} strokeWidth={2.5}/> },
+  medium:   { color: "#F5C842", glow: "rgba(245,200,66,0.2)", bg: "rgba(245,200,66,0.1)", label: "Medium",   icon: <Info size={10} strokeWidth={2.5}/> },
+  good:     { color: "#30D158", glow: "rgba(48,209,88,0.2)",  bg: "rgba(48,209,88,0.1)",  label: "Good",     icon: <CheckCircle2 size={10} strokeWidth={2.5}/> },
 };
 
-const ROAST_TAUNTS = [
+const TAUNTS = [
   "Firing up the shame cannon…",
-  "Consulting the council of bad design…",
-  "Counting the UX sins…",
-  "Your designer will not like this…",
-  "This might sting a little…",
-  "Preparing the verdict…",
-  "Taking notes on your life choices…",
+  "Your designer is sweating rn…",
+  "Counting the sins…",
+  "This might sting…",
+  "Loading brutal honesty…",
+  "Charging up the roast laser…",
+  "Zero chill mode: activated…",
 ];
 
 /* ─── Score Ring ─────────────────────────────────────────────────────────── */
-
 function ScoreRing({ score, size = 64 }: { score: number; size?: number }) {
-  const stroke = size < 70 ? 5 : 6;
-  const r = (size - stroke * 2) / 2;
+  const sw = 5.5;
+  const r = (size - sw * 2) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
-  const color =
-    score >= 65 ? "#34C759" : score >= 40 ? "#F5C842" : "#FF4D1C";
-  const fontSize = Math.round(size * 0.24);
+  const color = score >= 65 ? "#30D158" : score >= 40 ? "#F5C842" : "#FF4D1C";
+  const ringId = `ring-${size}-${score}`;
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0, overflow: "visible" }}>
+      <defs>
+        <linearGradient id={ringId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.6" />
+          <stop offset="100%" stopColor={color} stopOpacity="1" />
+        </linearGradient>
+      </defs>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={sw}/>
       <motion.circle
-        cx={size / 2} cy={size / 2} r={r}
-        fill="none" stroke={color} strokeWidth={stroke}
-        strokeLinecap="round" strokeDasharray={circ}
+        cx={size/2} cy={size/2} r={r} fill="none"
+        stroke={`url(#${ringId})`} strokeWidth={sw} strokeLinecap="round"
+        strokeDasharray={circ}
         initial={{ strokeDashoffset: circ }}
         animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{ filter: `drop-shadow(0 0 ${sw}px ${color}66)` }}
       />
       <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
-        fontSize={fontSize} fontWeight="800" fill="#F0EFF8">
+        fontSize={Math.round(size * 0.24)} fontWeight="800" fill="#F0EFF8"
+        fontFamily="-apple-system,BlinkMacSystemFont,'Inter',sans-serif">
         {score}
       </text>
     </svg>
   );
 }
 
-/* ─── Finding Item ───────────────────────────────────────────────────────── */
-
-function FindingItem({ finding, index }: { finding: Finding; index: number }) {
-  const cfg = SEV_CONFIG[finding.severity];
+/* ─── Finding card ───────────────────────────────────────────────────────── */
+function Finding({ f, i }: { f: Finding; i: number }) {
+  const s = SEV[f.severity];
   return (
     <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.06 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: i * 0.07 }}
       style={{
-        display: "flex",
-        gap: 12,
-        padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.05)",
+        borderLeft: `3px solid ${s.color}`,
+        borderRadius: "0 10px 10px 0",
+        padding: "12px 14px",
+        marginBottom: 8,
       }}
     >
-      {/* Severity badge */}
-      <div style={{ paddingTop: 2 }}>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 3,
-            padding: "2px 7px",
-            borderRadius: 99,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.04em",
-            background: cfg.bg,
-            color: cfg.color,
-            whiteSpace: "nowrap",
-            textTransform: "uppercase",
-          }}
-        >
-          {cfg.icon}
-          {cfg.label}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        {/* Badge */}
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0,
+          padding: "2px 7px", borderRadius: 99, marginTop: 1,
+          fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase",
+          background: s.bg, color: s.color,
+        }}>
+          {s.icon} {s.label}
         </span>
-      </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Title */}
-        <p style={{
-          margin: 0,
-          fontSize: 14,
-          fontWeight: 600,
-          color: "#F0EFF8",
-          lineHeight: 1.4,
-          marginBottom: finding.quote ? 6 : 4,
-        }}>
-          {finding.title}
-        </p>
-
-        {/* Quote */}
-        {finding.quote && (
-          <div style={{
-            background: "rgba(255,255,255,0.04)",
-            borderLeft: `3px solid ${cfg.color}`,
-            borderRadius: "0 6px 6px 0",
-            padding: "6px 10px",
-            marginBottom: 6,
-            fontSize: 12,
-            fontStyle: "italic",
-            color: "#B8B7D0",
-            lineHeight: 1.5,
-          }}>
-            &ldquo;{finding.quote}&rdquo;
-          </div>
-        )}
-
-        {/* Action */}
-        <p style={{
-          margin: 0,
-          fontSize: 12,
-          color: "#7E7D9A",
-          lineHeight: 1.5,
-        }}>
-          <span style={{ color: cfg.color, fontWeight: 600, marginRight: 4 }}>→</span>
-          {finding.action}
-        </p>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 13.5, fontWeight: 650, color: "#EDEEFA", lineHeight: 1.35 }}>
+            {f.title}
+          </p>
+          {f.quote && (
+            <div style={{
+              margin: "0 0 8px",
+              padding: "7px 12px",
+              background: "rgba(0,0,0,0.3)",
+              borderRadius: 8,
+              fontSize: 12,
+              fontStyle: "italic",
+              color: "#9997BC",
+              lineHeight: 1.5,
+            }}>
+              &ldquo;{f.quote}&rdquo;
+            </div>
+          )}
+          <p style={{ margin: 0, fontSize: 12, color: "#7E7D9A", lineHeight: 1.5 }}>
+            <span style={{ color: s.color, fontWeight: 700 }}>→ </span>{f.action}
+          </p>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-/* ─── Dimension Card ─────────────────────────────────────────────────────── */
-
-function DimensionCard({ result, index }: { result: DimensionResult; index: number }) {
+/* ─── Dimension card ─────────────────────────────────────────────────────── */
+function DimCard({ result, idx }: { result: DimensionResult; idx: number }) {
   const [open, setOpen] = useState(true);
-  const label = DIMENSION_LABELS[result.dimension] ?? result.dimension;
-  const worstSev = result.findings.find(f => f.severity === "critical")
-    ? "critical"
-    : result.findings.find(f => f.severity === "high")
-    ? "high"
-    : result.findings.find(f => f.severity === "medium")
-    ? "medium"
-    : "good";
-  const accentColor = SEV_CONFIG[worstSev].color;
+  const label = LABELS[result.dimension] ?? result.dimension;
+  const worst = result.findings.find(f => f.severity === "critical") ? "critical"
+    : result.findings.find(f => f.severity === "high") ? "high"
+    : result.findings.find(f => f.severity === "medium") ? "medium" : "good";
+  const accent = SEV[worst].color;
+  const glow = SEV[worst].glow;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.45, delay: idx * 0.12, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        background: "#13131F",
-        border: "1px solid #22213A",
-        borderLeft: `3px solid ${accentColor}`,
-        borderRadius: 16,
+        borderRadius: 18,
         overflow: "hidden",
+        background: "linear-gradient(145deg, #141424 0%, #0F0F1C 100%)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        boxShadow: `0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)`,
       }}
     >
-      {/* Card header */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          padding: "16px 20px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        <ScoreRing score={result.score} size={60} />
-
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Header */}
+      <button onClick={() => setOpen(v => !v)} style={{
+        width: "100%", display: "flex", alignItems: "center", gap: 18,
+        padding: "18px 20px", background: "none", border: "none", cursor: "pointer",
+      }}>
+        {/* Score with glow */}
+        <div style={{ position: "relative" }}>
           <div style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: accentColor,
-            marginBottom: 4,
-          }}>
-            {label}
+            position: "absolute", inset: -4, borderRadius: "50%",
+            background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`,
+          }} />
+          <ScoreRing score={result.score} size={62} />
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+          {/* Label tag */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em",
+              color: accent,
+            }}>{label}</span>
+            <span style={{
+              fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
+              padding: "1px 6px", borderRadius: 4,
+              background: SEV[worst].bg, color: accent,
+            }}>{worst}</span>
           </div>
-          <p style={{
-            margin: 0,
-            fontSize: 13,
-            color: "#B8B7D0",
-            lineHeight: 1.45,
-          }}>
+          <p style={{ margin: 0, fontSize: 13, color: "#B8B7D0", lineHeight: 1.45 }}>
             {result.summary}
           </p>
         </div>
 
         <div style={{
-          fontSize: 11,
-          color: "#7E7D9A",
-          padding: "4px 8px",
+          fontSize: 11, color: "#4E4D6E",
+          padding: "5px 9px",
           background: "rgba(255,255,255,0.04)",
-          borderRadius: 6,
-          flexShrink: 0,
+          borderRadius: 6, flexShrink: 0,
         }}>
           {open ? "▲" : "▼"}
         </div>
@@ -286,19 +205,15 @@ function DimensionCard({ result, index }: { result: DimensionResult; index: numb
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: "auto" }}
-            exit={{ height: 0 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             style={{ overflow: "hidden" }}
           >
             <div style={{
               borderTop: "1px solid rgba(255,255,255,0.05)",
-              padding: "0 20px 4px",
+              padding: "12px 20px 16px",
             }}>
-              {result.findings.map((f, i) => (
-                <FindingItem key={i} finding={f} index={i} />
-              ))}
+              {result.findings.map((f, i) => <Finding key={i} f={f} i={i} />)}
             </div>
           </motion.div>
         )}
@@ -307,56 +222,35 @@ function DimensionCard({ result, index }: { result: DimensionResult; index: numb
   );
 }
 
-/* ─── Skeleton loader card ───────────────────────────────────────────────── */
-
-function SkeletonCard({ label }: { label: string }) {
+/* ─── Skeleton ───────────────────────────────────────────────────────────── */
+function Skeleton({ label }: { label: string }) {
   return (
     <div style={{
-      background: "#13131F",
-      border: "1px solid #22213A",
-      borderLeft: "3px solid #22213A",
-      borderRadius: 16,
-      padding: "16px 20px",
-      display: "flex",
-      alignItems: "center",
-      gap: 16,
+      borderRadius: 18, padding: "18px 20px",
+      background: "linear-gradient(145deg, #141424 0%, #0F0F1C 100%)",
+      border: "1px solid rgba(255,255,255,0.05)",
+      display: "flex", alignItems: "center", gap: 18,
     }}>
-      {/* Spinning ring */}
-      <div style={{ position: "relative", width: 60, height: 60, flexShrink: 0 }}>
-        <svg width={60} height={60} viewBox="0 0 60 60">
-          <circle cx={30} cy={30} r={25} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={5} />
+      <div style={{ position: "relative", width: 62, height: 62, flexShrink: 0 }}>
+        <svg width={62} height={62} viewBox="0 0 62 62">
+          <circle cx={31} cy={31} r={26} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={5.5}/>
         </svg>
-        <motion.div
-          style={{
-            position: "absolute",
-            inset: 0,
-            border: "5px solid transparent",
-            borderTopColor: "#FF4D1C",
-            borderRadius: "50%",
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+        <motion.div style={{
+          position: "absolute", inset: 0,
+          border: "5px solid transparent",
+          borderTopColor: "#FF4D1C",
+          borderRadius: "50%",
+        }} animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}/>
       </div>
-
       <div>
-        <div style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "#7E7D9A",
-          marginBottom: 8,
-        }}>
+        <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#FF4D1C", marginBottom: 6 }}>
           {label}
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[0, 1, 2].map(i => (
-            <motion.div key={i} style={{
-              width: 6, height: 6, borderRadius: "50%", background: "#32305A",
-            }}
-              animate={{ opacity: [0.3, 1, 0.3] }}
-              transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.22 }}
+        <div style={{ display: "flex", gap: 5 }}>
+          {[0,1,2].map(i => (
+            <motion.div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "#32305A" }}
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.2 }}
             />
           ))}
         </div>
@@ -365,40 +259,187 @@ function SkeletonCard({ label }: { label: string }) {
   );
 }
 
-/* ─── Locked dimension row ───────────────────────────────────────────────── */
-
-function LockedCard({ label }: { label: string }) {
+/* ─── Locked card ────────────────────────────────────────────────────────── */
+function LockedCard({ label, icon }: { label: string; icon: string }) {
   return (
     <div style={{
-      background: "rgba(19,19,31,0.5)",
-      border: "1px dashed #22213A",
-      borderRadius: 16,
-      padding: "14px 20px",
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      opacity: 0.6,
+      borderRadius: 14, padding: "13px 18px",
+      background: "rgba(13,13,28,0.5)",
+      border: "1px dashed rgba(255,255,255,0.08)",
+      display: "flex", alignItems: "center", gap: 12,
     }}>
-      <Lock size={16} style={{ color: "#7E7D9A", flexShrink: 0 }} />
-      <span style={{ fontSize: 13, color: "#7E7D9A", fontWeight: 500 }}>
-        {label} — locked
-      </span>
+      <span style={{ fontSize: 15, opacity: 0.4 }}>{icon}</span>
+      <span style={{ fontSize: 13, color: "#4E4D6E", fontWeight: 500 }}>{label}</span>
+      <Lock size={12} style={{ color: "#4E4D6E", marginLeft: "auto" }} />
     </div>
   );
 }
 
-/* ─── Main content ───────────────────────────────────────────────────────── */
+/* ─── Upsell / payment ───────────────────────────────────────────────────── */
+function Upsell({ siteUrl }: { siteUrl: string }) {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
+  async function pay() {
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteUrl }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setErr(data.error ?? "Payment failed");
+        setLoading(false);
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Payment failed");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        marginTop: 32,
+        borderRadius: 22,
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      {/* Gradient border trick */}
+      <div style={{
+        position: "absolute", inset: 0, borderRadius: 22,
+        padding: 1,
+        background: "linear-gradient(135deg, rgba(255,77,28,0.5) 0%, rgba(100,80,200,0.3) 100%)",
+        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+        WebkitMaskComposite: "xor",
+        maskComposite: "exclude",
+        pointerEvents: "none",
+      }} />
+
+      <div style={{
+        background: "linear-gradient(135deg, #1A0E0A 0%, #130E22 50%, #0F0F1C 100%)",
+        padding: "32px 28px",
+        textAlign: "center",
+        position: "relative",
+      }}>
+        {/* Glow orb */}
+        <div style={{
+          position: "absolute", top: -40, left: "50%", transform: "translateX(-50%)",
+          width: 200, height: 200, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(255,77,28,0.12) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "5px 14px", borderRadius: 99,
+          background: "rgba(255,77,28,0.12)",
+          border: "1px solid rgba(255,77,28,0.2)",
+          color: "#FF6B3D",
+          fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
+          marginBottom: 18,
+        }}>
+          <Flame size={11} /> 6 more dimensions waiting
+        </div>
+
+        <h2 style={{
+          margin: "0 0 12px",
+          fontSize: 26, fontWeight: 900,
+          color: "#F0EFF8", lineHeight: 1.15,
+          letterSpacing: "-0.02em",
+        }}>
+          There&apos;s more pain<br />to uncover
+        </h2>
+
+        <p style={{
+          margin: "0 0 8px",
+          fontSize: 14, color: "#9997BC", lineHeight: 1.6,
+          maxWidth: 380, marginLeft: "auto", marginRight: "auto",
+        }}>
+          You saw 3 free dimensions. The full roast unlocks 6 more:
+        </p>
+
+        {/* Dimension pills */}
+        <div style={{
+          display: "flex", flexWrap: "wrap", gap: 6,
+          justifyContent: "center", margin: "12px auto 24px",
+          maxWidth: 380,
+        }}>
+          {["UX Flow", "Accessibility", "Trust Signals", "Mobile", "Performance", "SEO"].map(d => (
+            <span key={d} style={{
+              padding: "4px 10px", borderRadius: 99,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              fontSize: 12, color: "#9997BC", fontWeight: 500,
+            }}>{d}</span>
+          ))}
+        </div>
+
+        {/* Price + CTA */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={pay}
+            disabled={loading}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 10,
+              padding: "15px 32px", borderRadius: 14,
+              background: loading ? "#2A1810" : "linear-gradient(135deg, #FF4D1C 0%, #FF6B3D 100%)",
+              color: loading ? "#7E4D38" : "#fff",
+              border: "none", cursor: loading ? "default" : "pointer",
+              fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em",
+              boxShadow: loading ? "none" : "0 8px 32px rgba(255,77,28,0.35), 0 2px 8px rgba(0,0,0,0.5)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={e => {
+              if (!loading) (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+            }}
+          >
+            {loading ? <Loader2 size={17} style={{ animation: "spin 1s linear infinite" }} /> : <CreditCard size={17} />}
+            {loading ? "Redirecting to payment…" : "Unlock Full Roast — ₹2,499"}
+          </button>
+
+          {err && (
+            <p style={{ margin: 0, fontSize: 12, color: "#FF4D1C" }}>{err}</p>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {["One-time payment", "No subscription", "Powered by Stripe"].map((t, i) => (
+              <span key={i} style={{ fontSize: 11, color: "#4E4D6E", display: "flex", alignItems: "center", gap: 4 }}>
+                {i > 0 && <span style={{ color: "#22213A" }}>·</span>} {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Main content ───────────────────────────────────────────────────────── */
 function AnalyzeContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url") ?? "";
+  const tier = (searchParams.get("tier") ?? "free") as "free" | "full";
+  const paid = searchParams.get("paid") === "1";
 
   const [status, setStatus] = useState("Capturing screenshot…");
-  const [dimensions, setDimensions] = useState<DimensionResult[]>([]);
+  const [dims, setDims] = useState<DimensionResult[]>([]);
   const [done, setDone] = useState(false);
-  const [overallScore, setOverallScore] = useState<number | null>(null);
+  const [score, setScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tauntIdx, setTauntIdx] = useState(0);
+  const [taunt, setTaunt] = useState(0);
   const started = useRef(false);
 
   useEffect(() => {
@@ -407,41 +448,43 @@ function AnalyzeContent() {
 
     const form = new FormData();
     form.append("url", url);
-    form.append("tier", "free");
+    form.append("tier", tier);
+    // Skip rate limit for paid users
+    if (paid) form.append("paid", "1");
 
     const ctrl = new AbortController();
     fetch("/api/analyze", { method: "POST", body: form, signal: ctrl.signal })
-      .then(async (res) => {
+      .then(async res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const reader = res.body!.getReader();
         const dec = new TextDecoder();
         let buf = "";
         while (true) {
-          const { done: rdone, value } = await reader.read();
-          if (rdone) break;
+          const { done: rd, value } = await reader.read();
+          if (rd) break;
           buf += dec.decode(value, { stream: true });
           const lines = buf.split("\n\n");
           buf = lines.pop() ?? "";
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
+          for (const ln of lines) {
+            if (!ln.startsWith("data: ")) continue;
             try {
-              const event = JSON.parse(line.slice(6));
-              if (event.type === "status") setStatus(event.payload.message);
-              else if (event.type === "dimension") setDimensions(p => [...p, event.payload]);
-              else if (event.type === "done") { setOverallScore(event.payload.overallScore); setDone(true); }
-              else if (event.type === "error") setError(event.payload.message);
-            } catch { /* skip */ }
+              const ev = JSON.parse(ln.slice(6));
+              if (ev.type === "status")    setStatus(ev.payload.message);
+              if (ev.type === "dimension") setDims(p => [...p, ev.payload]);
+              if (ev.type === "done")      { setScore(ev.payload.overallScore); setDone(true); }
+              if (ev.type === "error")     setError(ev.payload.message);
+            } catch { /**/ }
           }
         }
       })
       .catch(e => { if (e.name !== "AbortError") setError(e.message); });
 
     return () => ctrl.abort();
-  }, [url]);
+  }, [url, tier, paid]);
 
   useEffect(() => {
     if (done || error) return;
-    const t = setInterval(() => setTauntIdx(i => (i + 1) % ROAST_TAUNTS.length), 2800);
+    const t = setInterval(() => setTaunt(i => (i + 1) % TAUNTS.length), 2600);
     return () => clearInterval(t);
   }, [done, error]);
 
@@ -456,103 +499,87 @@ function AnalyzeContent() {
     </div>
   );
 
-  const scoreVerdict =
-    overallScore === null ? null
-    : overallScore >= 70 ? { text: "Ok fine, this slaps", color: "#34C759" }
-    : overallScore >= 55 ? { text: "Mid. Not terrible, not good.", color: "#F5C842" }
-    : overallScore >= 35 ? { text: "Babe wake up, new problems just dropped", color: "#FF9F0A" }
-    : { text: "I deployed at 3am and prayed energy", color: "#FF4D1C" };
+  const verdict =
+    score === null ? null
+    : score >= 70 ? { text: "Ok fine, this actually slaps 👏", color: "#30D158" }
+    : score >= 55 ? { text: "Mid. Potential, but fumbling it.", color: "#F5C842" }
+    : score >= 35 ? { text: "Babe wake up, new problems just dropped 💀", color: "#FF9F0A" }
+    : { text: "I deployed at 3am and prayed energy ☠️", color: "#FF4D1C" };
+
+  const loadingDims = tier === "full"
+    ? Object.keys(LABELS).filter(d => !dims.find(r => r.dimension === d))
+    : FREE_DIMS.filter(d => !dims.find(r => r.dimension === d));
 
   return (
     <div style={{
       minHeight: "100vh",
-      maxWidth: 680,
+      maxWidth: 700,
       margin: "0 auto",
-      padding: "48px 20px 80px",
+      padding: "44px 20px 80px",
       color: "#F0EFF8",
     }}>
-      {/* Back nav */}
+      {/* Back */}
       <Link href="/" style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: 13,
-        color: "#7E7D9A",
-        textDecoration: "none",
-        marginBottom: 32,
+        display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13,
+        color: "#4E4D6E", textDecoration: "none", marginBottom: 36,
         transition: "color 0.15s",
       }}
-        onMouseEnter={e => (e.currentTarget.style.color = "#B8B7D0")}
-        onMouseLeave={e => (e.currentTarget.style.color = "#7E7D9A")}
+        onMouseEnter={e => (e.currentTarget.style.color = "#9997BC")}
+        onMouseLeave={e => (e.currentTarget.style.color = "#4E4D6E")}
       >
-        <ArrowLeft size={14} /> Back to RoastLab
+        <ArrowLeft size={13} /> RoastLab
       </Link>
 
-      {/* Page header */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 6,
-        }}>
-          <Flame size={16} color="#FF4D1C" />
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#F0EFF8" }}>
-            Roasting
-          </h1>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+          <Flame size={15} color="#FF4D1C" />
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#FF4D1C" }}>
+            {tier === "full" && paid ? "Full Audit" : "Free Audit"}
+          </span>
         </div>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 13,
-            color: "#7E7D9A",
-            fontFamily: "var(--font-geist-mono, monospace)",
-            textDecoration: "none",
-            maxWidth: "100%",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {url}
-          <ExternalLink size={11} />
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{
+          display: "inline-flex", alignItems: "center", gap: 5, fontSize: 15, fontWeight: 600,
+          color: "#EDEEFA", textDecoration: "none", fontFamily: "var(--font-geist-mono, monospace)",
+          maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {url} <ExternalLink size={12} style={{ color: "#4E4D6E", flexShrink: 0 }} />
         </a>
       </div>
 
-      {/* Overall score card */}
+      {/* Overall score */}
       <AnimatePresence>
-        {done && overallScore !== null && scoreVerdict && (
+        {done && score !== null && verdict && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              background: "linear-gradient(135deg, #13131F 0%, #1A1428 100%)",
-              border: "1px solid #32305A",
-              borderRadius: 20,
-              padding: "24px 28px",
-              display: "flex",
-              alignItems: "center",
-              gap: 24,
+              background: "linear-gradient(145deg, #141424 0%, #0F0F1C 100%)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 22,
+              padding: "24px 26px",
+              display: "flex", alignItems: "center", gap: 22,
               marginBottom: 32,
-              boxShadow: `0 0 48px rgba(255,77,28,0.10)`,
+              boxShadow: "0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
             }}
           >
-            <ScoreRing score={overallScore} size={88} />
+            <div style={{ position: "relative" }}>
+              <div style={{
+                position: "absolute", inset: -8, borderRadius: "50%",
+                background: `radial-gradient(circle, ${verdict.color}20 0%, transparent 70%)`,
+              }}/>
+              <ScoreRing score={score} size={92} />
+            </div>
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7E7D9A" }}>
+              <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "#4E4D6E" }}>
                 Overall Roast Score
               </p>
-              <p style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 800, color: scoreVerdict.color, lineHeight: 1.2 }}>
-                {scoreVerdict.text}
+              <p style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: verdict.color, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+                {verdict.text}
               </p>
-              <p style={{ margin: 0, fontSize: 13, color: "#7E7D9A" }}>
-                Across {dimensions.length} of 9 dimensions
+              <p style={{ margin: 0, fontSize: 12, color: "#7E7D9A" }}>
+                {dims.length} of 9 dimensions · {tier === "full" ? "Full audit" : "Free preview"}
               </p>
             </div>
           </motion.div>
@@ -562,35 +589,24 @@ function AnalyzeContent() {
       {/* Loading status */}
       {!done && !error && (
         <AnimatePresence mode="wait">
-          <motion.div
-            key={tauntIdx}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+          <motion.div key={taunt}
+            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 16px",
-              background: "#0F0F1A",
-              border: "1px solid #22213A",
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "11px 16px", marginBottom: 24,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
               borderRadius: 12,
-              marginBottom: 24,
             }}
           >
-            <motion.div
-              style={{
-                width: 16, height: 16, borderRadius: "50%",
-                border: "2px solid #22213A",
-                borderTopColor: "#FF4D1C",
-                flexShrink: 0,
-              }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
-            />
-            <span style={{ fontSize: 13, color: "#B8B7D0" }}>
-              {dimensions.length === 0 ? status : ROAST_TAUNTS[tauntIdx]}
+            <motion.div style={{
+              width: 15, height: 15, borderRadius: "50%",
+              border: "2.5px solid rgba(255,255,255,0.06)",
+              borderTopColor: "#FF4D1C", flexShrink: 0,
+            }} animate={{ rotate: 360 }} transition={{ duration: 0.85, repeat: Infinity, ease: "linear" }}/>
+            <span style={{ fontSize: 13, color: "#9997BC" }}>
+              {dims.length === 0 ? status : TAUNTS[taunt]}
             </span>
           </motion.div>
         </AnimatePresence>
@@ -598,172 +614,76 @@ function AnalyzeContent() {
 
       {/* Error */}
       {error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           style={{
-            padding: "14px 18px",
-            background: "rgba(255,77,28,0.08)",
-            border: "1px solid rgba(255,77,28,0.3)",
-            borderRadius: 12,
-            marginBottom: 24,
-            fontSize: 14,
-            color: "#FF6B3D",
-            lineHeight: 1.5,
-          }}
-        >
+            padding: "14px 18px", marginBottom: 24, borderRadius: 12,
+            background: "rgba(255,77,28,0.07)",
+            border: "1px solid rgba(255,77,28,0.25)",
+            fontSize: 14, color: "#FF6B3D", lineHeight: 1.5,
+          }}>
           {error}
         </motion.div>
       )}
 
-      {/* Section label */}
-      {(dimensions.length > 0 || (!done && !error)) && (
-        <p style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          color: "#7E7D9A",
-          marginBottom: 12,
-        }}>
-          Free Dimensions (3 of 9)
+      {/* Section header */}
+      {(dims.length > 0 || (!done && !error)) && (
+        <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "#4E4D6E", marginBottom: 14 }}>
+          {tier === "full" ? "All 9 Dimensions" : "Free Dimensions (3 of 9)"}
         </p>
       )}
 
-      {/* Dimension results */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {dimensions.map((d, i) => (
-          <DimensionCard key={d.dimension} result={d} index={i} />
-        ))}
-
-        {/* Loading skeletons */}
-        {!done && !error &&
-          FREE_DIMS.filter(d => !dimensions.find(r => r.dimension === d)).map(d => (
-            <SkeletonCard key={d} label={DIMENSION_LABELS[d] ?? d} />
-          ))
-        }
+      {/* Dimension cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {dims.map((d, i) => <DimCard key={d.dimension} result={d} idx={i} />)}
+        {!done && !error && loadingDims.map(d => <Skeleton key={d} label={LABELS[d] ?? d} />)}
       </div>
 
-      {/* Locked dimensions */}
-      {(done || dimensions.length > 0) && (
-        <div style={{ marginTop: 24 }}>
-          <p style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: "#7E7D9A",
-            marginBottom: 12,
-          }}>
-            Locked (6 of 9)
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {LOCKED_DIMS.map(d => <LockedCard key={d.key} label={d.label} />)}
+      {/* Locked preview + upsell */}
+      {done && tier !== "full" && (
+        <>
+          <div style={{ marginTop: 28 }}>
+            <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "#4E4D6E", marginBottom: 12 }}>
+              Locked (6 of 9)
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {LOCKED_DIMS.map(d => <LockedCard key={d.key} label={d.label} icon={d.icon} />)}
+            </div>
           </div>
-        </div>
+          <Upsell siteUrl={url} />
+        </>
       )}
 
-      {/* Upsell */}
-      {done && (
+      {/* Done — full audit */}
+      {done && tier === "full" && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
           style={{
-            marginTop: 32,
-            background: "linear-gradient(135deg, #1A0E0A 0%, #1A1428 100%)",
-            border: "1px solid rgba(255,77,28,0.25)",
-            borderRadius: 20,
-            padding: "28px 28px",
-            textAlign: "center",
+            marginTop: 28, padding: "18px 22px", borderRadius: 14,
+            background: "rgba(48,209,88,0.06)",
+            border: "1px solid rgba(48,209,88,0.2)",
+            display: "flex", alignItems: "center", gap: 12,
           }}
         >
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "4px 12px",
-            borderRadius: 99,
-            background: "rgba(255,77,28,0.12)",
-            color: "#FF4D1C",
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            marginBottom: 16,
-          }}>
-            <Flame size={11} />
-            6 more dimensions waiting
-          </div>
-
-          <h2 style={{
-            margin: "0 0 10px",
-            fontSize: 22,
-            fontWeight: 800,
-            color: "#F0EFF8",
-            lineHeight: 1.2,
-          }}>
-            There&apos;s more pain to uncover
-          </h2>
-          <p style={{
-            margin: "0 0 24px",
-            fontSize: 14,
-            color: "#B8B7D0",
-            lineHeight: 1.6,
-            maxWidth: 420,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}>
-            Unlock Accessibility, UX Flow, Trust Signals, Mobile, Performance, and SEO audits. One payment, full roast forever.
-          </p>
-
-          <button
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "14px 28px",
-              background: "#FF4D1C",
-              color: "#fff",
-              border: "none",
-              borderRadius: 12,
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "background 0.15s, transform 0.15s",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = "#FF6B3D";
-              (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = "#FF4D1C";
-              (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-            }}
-          >
-            <Flame size={16} />
-            Unlock Full Roast — ₹2,499
-          </button>
-
-          <p style={{ margin: "12px 0 0", fontSize: 12, color: "#7E7D9A" }}>
-            One-time payment · No subscription · Results in ~90s
-          </p>
+          <CheckCircle2 size={18} color="#30D158" />
+          <span style={{ fontSize: 13, color: "#30D158", fontWeight: 600 }}>
+            Full roast complete — all 9 dimensions analysed.
+          </span>
         </motion.div>
       )}
     </div>
   );
 }
 
-/* ─── Page ───────────────────────────────────────────────────────────────── */
-
+/* ─── Export ─────────────────────────────────────────────────────────────── */
 export default function AnalyzePage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <motion.div
-          style={{ width: 32, height: 32, border: "3px solid #22213A", borderTopColor: "#FF4D1C", borderRadius: "50%" }}
+          style={{ width: 30, height: 30, border: "3px solid rgba(255,255,255,0.06)", borderTopColor: "#FF4D1C", borderRadius: "50%" }}
           animate={{ rotate: 360 }}
-          transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 0.85, repeat: Infinity, ease: "linear" }}
         />
       </div>
     }>
