@@ -111,16 +111,23 @@ function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
               animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}/>
           </div>
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imgUrl} alt="" onLoad={() => setLoaded(true)}
-          style={{ width: "100%", display: "block", filter: "brightness(0.8) saturate(0.75)", opacity: loaded ? 1 : 0, transition: "opacity 0.3s" }}/>
+        <a href={imgUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", cursor: "zoom-in" }} title="Click to view full screenshot">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgUrl} alt="Site screenshot" onLoad={() => setLoaded(true)}
+            style={{ width: "100%", display: "block", filter: "brightness(0.8) saturate(0.75)", opacity: loaded ? 1 : 0, transition: "opacity 0.3s" }}/>
+        </a>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 50%, #080814)", pointerEvents: "none" }}/>
         {loaded && (
-          <motion.div initial={{ opacity: 0, rotate: -25, scale: 2 }} animate={{ opacity: 1, rotate: -8, scale: 1 }}
-            transition={{ duration: 0.35, delay: 0.2 }}
-            style={{ position: "absolute", top: 10, right: 10, padding: "3px 10px", border: "2px solid #FF2D5588", color: "#FF2D55CC", fontSize: 11, fontWeight: 900, fontFamily: "serif", textTransform: "uppercase", letterSpacing: "0.1em", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", borderRadius: 3, pointerEvents: "none" }}>
-            ROASTED
-          </motion.div>
+          <>
+            <motion.div initial={{ opacity: 0, rotate: -25, scale: 2 }} animate={{ opacity: 1, rotate: -8, scale: 1 }}
+              transition={{ duration: 0.35, delay: 0.2 }}
+              style={{ position: "absolute", top: 10, right: 10, padding: "3px 10px", border: "2px solid #FF2D5588", color: "#FF2D55CC", fontSize: 11, fontWeight: 900, fontFamily: "serif", textTransform: "uppercase", letterSpacing: "0.1em", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", borderRadius: 3, pointerEvents: "none" }}>
+              ROASTED
+            </motion.div>
+            <div style={{ position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "#3A3A5E", background: "rgba(0,0,0,0.6)", padding: "3px 8px", borderRadius: 4, backdropFilter: "blur(4px)", pointerEvents: "none" }}>
+              click to view full
+            </div>
+          </>
         )}
       </div>
     </motion.div>

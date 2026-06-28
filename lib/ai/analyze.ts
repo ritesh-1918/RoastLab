@@ -75,15 +75,23 @@ LANGUAGE RULES — burn these into your brain:
 - Use these phrases LIBERALLY: "it's giving", "the audacity", "bestie", "no fr", "main character syndrome", "ate and left no crumbs" (ironically), "zero chill was used in the making of this", "I'm in physical pain", "caught in 4K", "deployed this to production??? in THIS economy???", "sent it without looking", "absolutely unhinged decision", "this did not need to happen", "crying and throwing up", "I am so tired"
 - Actions should sting too: not "improve CTA" → "give that button some self-respect before it deletes itself"
 
-SCORING RULES — BE CRUEL:
-- 0-20: This is a crime scene. The kind of page that makes designers quit.
-- 20-35: Disaster. Something went deeply wrong at some point and nobody stopped it.
-- 35-50: Bad. Like, aggressively mediocre. Tried and failed publicly.
-- 50-65: Mid. The participation trophy of web design.
-- 65-75: Decent. Has moments of competence between the fumbles.
-- 75-85: Actually good. Clearly made by someone who was conscious.
-- 85+: NEVER give this unless the page is legitimately exceptional. It must earn it.
-Most pages deserve 25-50. Be harsh. Real design scores are brutal.
+SCORING RULES — CALIBRATED AND ACCURATE:
+- 0-20: Crime scene. Zero design intent. Makes designers physically unwell.
+- 20-35: Disaster. Multiple fundamental violations. Someone tried and catastrophically failed.
+- 35-50: Bad. Generic, thoughtless, no clear hierarchy or intent.
+- 50-65: Average. Some effort visible, but execution is inconsistent.
+- 65-75: Decent. Competent fundamentals, real issues but intentional decisions.
+- 75-85: Good. Someone actually knows what they're doing.
+- 85+: Elite. Genuinely exceptional — sharp hierarchy, clean copy, zero cruft.
+
+CALIBRATION (CRITICAL — base scores on reality):
+- Well-designed SaaS like Linear/Stripe/Vercel: 72-85 range
+- Solid startup with real design effort: 58-72 range
+- Average small business site: 40-58 range
+- Genuinely bad with zero thought: 20-40 range
+- DO NOT default to 25-45 for everything — that's lazy and dishonest
+- A professionally designed page with clear hierarchy SHOULD score 65+
+- Only be harsh when the work is ACTUALLY bad — arbitrary harshness = zero credibility
 
 OUTPUT: Valid JSON only. Zero markdown fences. Zero commentary. Pure JSON.`;
 }
@@ -123,7 +131,7 @@ What to roast: ${dimensionGuide[dimension]}
 MANDATORY OUTPUT FORMAT — return ONLY this JSON, nothing else:
 {
   "dimension": "${dimension}",
-  "score": <brutal number 0-100, most pages deserve 20-50>,
+  "score": <calibrated number 0-100, see scoring rules — score what you ACTUALLY see>,
   "summary": "<2-3 sentence roast. Open with a gut-punch line like 'i am BEGGING you' or 'whoever did this' or 'babe WHAT'. Make it savage AND funny. Quote specific text/elements from THIS page. Sound like a chronically online designer having a breakdown.>",
   "findings": [
     {
