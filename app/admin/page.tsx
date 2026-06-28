@@ -103,13 +103,11 @@ export default async function AdminPage() {
                 </thead>
                 <tbody>
                   {audits.map((a, i) => {
-                    const scoreColor = a.score >= 70 ? '#32D74B' : a.score >= 45 ? '#FFD60A' : '#FF2D55';
                     const dimCount = Array.isArray(a.dimensions) ? a.dimensions.length : 0;
-                    const date = new Date(a.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                     return (
                       <tr key={a.id} style={{ borderBottom: i < audits.length - 1 ? '1px solid #16161E' : 'none', transition: 'background 100ms' }}>
                         <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: scoreColor }}>{a.score}</span>
+                          <ScoreBadge score={a.score} size="sm" />
                         </td>
                         <td style={{ padding: '10px 16px', maxWidth: 300 }}>
                           <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#FAFAFA' }}>{a.url}</span>
@@ -118,12 +116,10 @@ export default async function AdminPage() {
                           <span style={{ fontSize: 11, color: '#4A4A62', fontFamily: 'monospace' }}>{a.user_id.slice(0, 16)}…</span>
                         </td>
                         <td style={{ padding: '10px 16px' }}>
-                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: a.tier === 'full' ? '#E8334A18' : '#27273A', color: a.tier === 'full' ? '#E8334A' : '#8B8BA3', fontWeight: 600 }}>
-                            {a.tier}
-                          </span>
+                          <TierBadge tier={a.tier} />
                         </td>
                         <td style={{ padding: '10px 16px', color: '#8B8BA3', textAlign: 'center' }}>{dimCount}</td>
-                        <td style={{ padding: '10px 16px', color: '#4A4A62', whiteSpace: 'nowrap' }}>{date}</td>
+                        <td style={{ padding: '10px 16px', color: '#4A4A62', whiteSpace: 'nowrap' }}>{relativeTime(a.created_at)}</td>
                         <td style={{ padding: '10px 16px' }}>
                           <Link href={`/analyze?url=${encodeURIComponent(a.url)}&tier=${a.tier}`} target="_blank"
                             style={{ color: '#4A4A62', display: 'flex', alignItems: 'center' }}>

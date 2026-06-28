@@ -202,7 +202,7 @@ export default function ForgotPasswordPage() {
                   <CheckCircle size={28} style={{ color: "#32D74B" }}/>
                 </div>
                 <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800 }}>Password reset!</h2>
-                <p style={{ margin: "0 0 24px", fontSize: 13, color: "#8B8BA3" }}>You're logged in. Redirecting to dashboard…</p>
+                <p style={{ margin: "0 0 24px", fontSize: 13, color: "#8B8BA3" }}>You&apos;re logged in. Redirecting to dashboard…</p>
                 <Link href="/dashboard" style={{ display: "inline-block", padding: "12px 24px", background: "#E8334A", color: "#fff", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
                   Go to dashboard →
                 </Link>

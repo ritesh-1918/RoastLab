@@ -1,0 +1,53 @@
+   ▲ Next.js 15.5.19
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.1s
+   Linting and checking validity of types ...
+
+./app/analyze/page.tsx
+406:21  Warning: 'onSignIn' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/landing/pricing.tsx
+67:19  Warning: 'setSiteUrl' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/18) ...
+   Generating static pages (4/18) 
+   Generating static pages (8/18) 
+   Generating static pages (13/18) 
+ ✓ Generating static pages (18/18)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      18 kB         205 kB
+├ ○ /_not-found                            991 B         104 kB
+├ ƒ /admin                                 969 B         150 kB
+├ ○ /analyze                             10.1 kB         197 kB
+├ ƒ /api/analyze                           136 B         103 kB
+├ ƒ /api/audit/[id]                        136 B         103 kB
+├ ƒ /api/audits                            136 B         103 kB
+├ ƒ /api/stripe                            136 B         103 kB
+├ ƒ /api/stripe/webhook                    136 B         103 kB
+├ ƒ /dashboard                             969 B         150 kB
+├ ƒ /dashboard/billing                     969 B         150 kB
+├ ƒ /dashboard/profile                     969 B         150 kB
+├ ƒ /dashboard/reports                     969 B         150 kB
+├ ○ /icon.svg                                0 B            0 B
+├ ○ /privacy                               164 B         106 kB
+├ ƒ /sign-in/[[...sign-in]]                332 B         146 kB
+├ ƒ /sign-up/[[...sign-up]]                332 B         146 kB
+└ ○ /terms                                 164 B         106 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/255-98a0bdaa30757bda.js       46.2 kB
+  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  └ other shared chunks (total)          2.05 kB
+
+
+ƒ Middleware                               90 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

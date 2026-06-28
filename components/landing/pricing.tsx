@@ -175,6 +175,27 @@ function PlanCard({ plan, index }: { plan: typeof PLANS[0]; index: number }) {
         {plan.limit}
       </div>
 
+      {/* Site URL input for paid plans */}
+      {plan.id !== 'free' && (
+        <input
+          type="text"
+          placeholder="Enter your website URL"
+          value={siteUrl}
+          onChange={(e) => setSiteUrl(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: '1px solid #27273A',
+            background: '#09090B',
+            color: '#FAFAFA',
+            fontSize: 13,
+            marginBottom: 12,
+            outline: 'none',
+          }}
+        />
+      )}
+
       {/* CTA */}
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
