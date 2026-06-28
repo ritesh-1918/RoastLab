@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Lock, ExternalLink, CreditCard, Loader2, Flame, Download } from "lucide-react";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 
-const ADMIN_EMAILS = ['bonthalamadhavi1@gmail.com'];
+const ADMIN_EMAILS = ['bonthalamadhavi1@gmail.com', 'ritesh@gratiantechnologies.com'];
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 type Severity = "critical" | "high" | "medium" | "good";
