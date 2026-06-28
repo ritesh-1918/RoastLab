@@ -9,6 +9,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
 import { captureScreenshot, crawlPage, extractSiteData, crawlSubpages } from '@/lib/screenshot';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { saveAudit } from '@/lib/db';
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bonthalamadhavi1@gmail.com')
   .split(',').map(e => e.trim().toLowerCase());
@@ -149,6 +150,17 @@ export async function POST(req: NextRequest) {
             });
           },
         });
+
+        // Persist audit if user is signed in
+        if (clerkUser) {
+          saveAudit({
+            userId: clerkUser.id,
+            url: url ?? 'screenshot',
+            score: result.overallScore,
+            tier,
+            dimensions: result.dimensions,
+          }).catch(() => {/* non-fatal */});
+        }
 
         send({
           type: 'done',

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
 import { LayoutDashboard, FileText, User, CreditCard, ExternalLink, ArrowRight } from 'lucide-react';
+import { getUserAudits, getUserStats } from '@/lib/db';
 
 const NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -18,6 +19,11 @@ export default async function DashboardPage() {
 
   const firstName = user.firstName ?? '';
   const email = user.emailAddresses[0]?.emailAddress ?? '';
+
+  const [recentAudits, stats] = await Promise.all([
+    getUserAudits(user.id, 3),
+    getUserStats(user.id),
+  ]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#09090B', color: '#FAFAFA', display: 'flex', flexDirection: 'column' }}>
@@ -134,9 +140,9 @@ export default async function DashboardPage() {
             }}
           >
             {[
-              { label: 'Audits run', value: '0', note: 'of 3 free' },
+              { label: 'Audits run', value: String(stats.count), note: stats.count > 0 ? 'total audits' : 'no audits yet' },
               { label: 'Current plan', value: 'Free', note: 'Upgrade →' },
-              { label: 'Avg. score', value: '—', note: 'No data yet' },
+              { label: 'Avg. score', value: stats.avgScore !== null ? String(stats.avgScore) : '—', note: stats.avgScore !== null ? 'out of 100' : 'No data yet' },
             ].map(({ label, value, note }) => (
               <div
                 key={label}
@@ -239,53 +245,40 @@ export default async function DashboardPage() {
               </Link>
             </div>
 
-            {/* Empty state */}
-            <div
-              style={{
-                border: '1px dashed #27273A',
-                borderRadius: 12,
-                padding: '48px 24px',
-                textAlign: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 10,
-                  background: '#16161E',
-                  border: '1px solid #27273A',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px',
-                }}
-              >
-                <FileText size={20} style={{ color: '#4A4A62' }} />
+            {recentAudits.length === 0 ? (
+              <div style={{ border: '1px dashed #27273A', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#16161E', border: '1px solid #27273A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <FileText size={20} style={{ color: '#4A4A62' }} />
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: '#8B8BA3', margin: '0 0 6px' }}>No reports yet</p>
+                <p style={{ fontSize: 12, color: '#4A4A62', margin: '0 0 20px' }}>Run your first audit to see it here</p>
+                <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: '#E8334A', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+                  Roast your first page <ArrowRight size={12} />
+                </Link>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: '#8B8BA3', margin: '0 0 6px' }}>No reports yet</p>
-              <p style={{ fontSize: 12, color: '#4A4A62', margin: '0 0 20px' }}>
-                Run your first audit to see it here
-              </p>
-              <Link
-                href="/"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 18px',
-                  background: '#E8334A',
-                  color: '#fff',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                Roast your first page <ArrowRight size={12} />
-              </Link>
-            </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {recentAudits.map((a) => {
+                  const scoreColor = a.score >= 70 ? '#32D74B' : a.score >= 45 ? '#FFD60A' : '#FF2D55';
+                  const d = new Date(a.created_at);
+                  const ago = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                  return (
+                    <Link key={a.id} href={`/analyze?url=${encodeURIComponent(a.url)}&tier=${a.tier}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 10, background: '#09090B', border: '1px solid #1E1E28', textDecoration: 'none', transition: 'border-color 150ms' }}
+                    >
+                      <div style={{ width: 40, height: 40, borderRadius: 8, background: `${scoreColor}15`, border: `1px solid ${scoreColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: scoreColor, flexShrink: 0 }}>
+                        {a.score}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: '#FAFAFA', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.url}</p>
+                        <p style={{ fontSize: 11, color: '#4A4A62', margin: 0 }}>{ago} · {a.tier} roast</p>
+                      </div>
+                      <ArrowRight size={12} style={{ color: '#4A4A62', flexShrink: 0 }} />
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>
