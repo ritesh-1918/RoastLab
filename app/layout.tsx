@@ -42,7 +42,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
     <html lang="en" className="dark" style={{ colorScheme: "dark" }}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -52,9 +51,10 @@ export default function RootLayout({
           fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
         }}
       >
-        {children}
+        <ClerkProvider>
+          {children}
+        </ClerkProvider>
       </body>
     </html>
-    </ClerkProvider>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/logo';
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 const NAV_LINKS = [
   { label: 'How it works', href: '#how-it-works' },
@@ -94,33 +95,59 @@ export function Navbar() {
             ))}
           </div>
 
-          <button
-            onClick={scrollToInput}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '7px 16px',
-              borderRadius: 8,
-              background: 'var(--ember)',
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background 140ms, transform 100ms',
-              minHeight: 36,
-              letterSpacing: '-0.01em',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ember-2)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ember)';
-            }}
-          >
-            Get Roasted →
-          </button>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: 'var(--text-dim)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  marginRight: 4,
+                }}
+              >
+                Sign in
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: 'var(--ember)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '7px 16px',
+                  borderRadius: 8,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Get Roasted →
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <a
+              href="/dashboard"
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--text-dim)',
+                textDecoration: 'none',
+                padding: '6px 10px',
+                borderRadius: 6,
+                marginRight: 8,
+              }}
+            >
+              Dashboard
+            </a>
+            <UserButton />
+          </SignedIn>
         </nav>
       </div>
     </header>
