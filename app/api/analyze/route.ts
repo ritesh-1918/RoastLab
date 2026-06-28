@@ -7,6 +7,7 @@
 import { NextRequest } from 'next/server';
 import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
 import { captureScreenshot } from '@/lib/screenshot';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -21,6 +22,22 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // Rate limit: 5 free audits per IP per 24h
+        const ip = getClientIp(req);
+        const limit = checkRateLimit(ip);
+        if (!limit.allowed) {
+          const resetIn = Math.ceil((limit.resetAt - Date.now()) / 1000 / 60 / 60);
+          send({
+            type: 'error',
+            payload: {
+              message: `You've used your 5 free roasts for today 😤 Come back in ~${resetIn}h, or unlock unlimited with the full plan.`,
+              rateLimited: true,
+            },
+          });
+          controller.close();
+          return;
+        }
+
         const formData = await req.formData();
         const file = formData.get('screenshot') as File | null;
         const url = (formData.get('url') as string | null) ?? undefined;

@@ -13,13 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RoastLab — AI Landing Page Audit",
+  title: "RoastLab — Your Landing Page Will Not Survive This",
   description:
-    "Get a senior designer's verdict on your landing page in 60 seconds. AI audit across 9 dimensions: Visual Design, UX, Copywriting, Accessibility, Trust, CTA, Mobile, Performance, SEO.",
+    "AI roasts your landing page like a chaotic senior designer at 2am. Get brutally honest feedback across 9 dimensions in ~60s. Free. No signup.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+  },
   openGraph: {
-    title: "RoastLab — AI Landing Page Audit",
-    description: "AI reviews your landing page like a senior designer, copywriter, and CRO expert.",
+    title: "RoastLab — Your Landing Page Will Not Survive This",
+    description: "AI roasts your landing page like a chaotic senior designer at 2am. Free. No signup.",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RoastLab — Your Landing Page Will Not Survive This",
+    description: "AI roasts your landing page like a chaotic senior designer at 2am.",
   },
 };
 

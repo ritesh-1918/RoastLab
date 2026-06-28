@@ -39,13 +39,13 @@ export function getProviders(): Provider[] {
     {
       name: 'groq-1',
       client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_1 ?? ''),
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       supportsVision: true,
     },
     {
       name: 'groq-2',
       client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_2 ?? ''),
-      model: 'llama-3.2-11b-vision-preview',
+      model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
       supportsVision: true,
     },
     {
