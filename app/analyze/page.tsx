@@ -4,122 +4,119 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Flame, Lock, ExternalLink, CreditCard, Loader2 } from "lucide-react";
+import { ArrowLeft, Lock, ExternalLink, CreditCard, Loader2, Flame } from "lucide-react";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 type Severity = "critical" | "high" | "medium" | "good";
 interface Finding { severity: Severity; title: string; quote?: string; action: string; }
 interface DimensionResult { dimension: string; score: number; summary: string; findings: Finding[]; }
 
-/* ─── Severity config ────────────────────────────────────────────────────── */
-const SEV: Record<Severity, { color: string; glow: string; bg: string; pill: string; emoji: string }> = {
-  critical: { color: "#FF3B30", glow: "rgba(255,59,48,0.25)",  bg: "rgba(255,59,48,0.07)",  pill: "💀 DISASTER", emoji: "💀" },
-  high:     { color: "#FF9F0A", glow: "rgba(255,159,10,0.25)", bg: "rgba(255,159,10,0.07)", pill: "🔥 CAUGHT", emoji: "🔥" },
-  medium:   { color: "#FFD60A", glow: "rgba(255,214,10,0.2)",  bg: "rgba(255,214,10,0.06)", pill: "😬 FUMBLE", emoji: "😬" },
-  good:     { color: "#30D158", glow: "rgba(48,209,88,0.2)",   bg: "rgba(48,209,88,0.06)",  pill: "✅ BASED", emoji: "✅" },
+/* ─── Severity ───────────────────────────────────────────────────────────── */
+const SEV: Record<Severity, { color: string; bg: string; label: string; icon: string }> = {
+  critical: { color: "#FF2D55", bg: "#FF2D5512", label: "💀 rip",     icon: "💀" },
+  high:     { color: "#FF9F0A", bg: "#FF9F0A12", label: "🔥 caught",  icon: "🔥" },
+  medium:   { color: "#FFD60A", bg: "#FFD60A0D", label: "😬 fumble",  icon: "😬" },
+  good:     { color: "#32D74B", bg: "#32D74B0D", label: "✅ based",   icon: "✅" },
 };
 
-const DIM_META: Record<string, { label: string; emoji: string; taunt: string }> = {
-  visual_design:    { label: "Visual Design",  emoji: "👁️",  taunt: "looking at the crime scene…" },
-  copywriting:      { label: "Copywriting",    emoji: "✍️",  taunt: "reading every word painfully…" },
-  cta:              { label: "CTA",            emoji: "🎯",  taunt: "finding where the button hid…" },
-  ux_flow:          { label: "UX Flow",        emoji: "🌀",  taunt: "getting lost on purpose…" },
-  accessibility:    { label: "Accessibility",  emoji: "♿",  taunt: "checking for war crimes…" },
-  trust_signals:    { label: "Trust Signals",  emoji: "🔒",  taunt: "questioning everything…" },
-  mobile_experience:{ label: "Mobile",         emoji: "📱",  taunt: "using a tiny screen…" },
-  performance:      { label: "Performance",    emoji: "⚡",  taunt: "watching the paint dry…" },
-  seo:              { label: "SEO",            emoji: "🔍",  taunt: "asking Google for therapy…" },
+const DIM: Record<string, { label: string; emoji: string; color: string }> = {
+  visual_design:     { label: "Visual Design",  emoji: "👁",  color: "#BF5AF2" },
+  copywriting:       { label: "Copywriting",    emoji: "✍️", color: "#0A84FF" },
+  cta:               { label: "CTA",            emoji: "🎯",  color: "#FF375F" },
+  ux_flow:           { label: "UX Flow",        emoji: "🌀",  color: "#5E5CE6" },
+  accessibility:     { label: "Accessibility",  emoji: "♿",  color: "#64D2FF" },
+  trust_signals:     { label: "Trust Signals",  emoji: "🔒",  color: "#FFD60A" },
+  mobile_experience: { label: "Mobile",         emoji: "📱",  color: "#FF6B00" },
+  performance:       { label: "Performance",    emoji: "⚡",  color: "#30D158" },
+  seo:               { label: "SEO",            emoji: "🔍",  color: "#FF9F0A" },
 };
 
 const FREE_DIMS = ["visual_design", "copywriting", "cta"];
 const LOCKED_DIMS = [
-  { key: "ux_flow", label: "UX Flow", emoji: "🌀" },
-  { key: "accessibility", label: "Accessibility", emoji: "♿" },
-  { key: "trust_signals", label: "Trust Signals", emoji: "🔒" },
-  { key: "mobile_experience", label: "Mobile", emoji: "📱" },
-  { key: "performance", label: "Performance", emoji: "⚡" },
-  { key: "seo", label: "SEO", emoji: "🔍" },
+  { key: "ux_flow",          label: "UX Flow",       emoji: "🌀" },
+  { key: "accessibility",    label: "Accessibility", emoji: "♿" },
+  { key: "trust_signals",    label: "Trust Signals", emoji: "🔒" },
+  { key: "mobile_experience",label: "Mobile",        emoji: "📱" },
+  { key: "performance",      label: "Performance",   emoji: "⚡" },
+  { key: "seo",              label: "SEO",           emoji: "🔍" },
 ];
 
-const SCORE_TIER = (s: number) => s >= 75
-  ? { label: "ok fine this actually slaps", emoji: "🔥", color: "#30D158", sub: "understood the assignment ngl" }
-  : s >= 60
-  ? { label: "mid. potential, fumbling it.", emoji: "😐", color: "#FFD60A", sub: "participation trophy behavior" }
-  : s >= 40
-  ? { label: "bestie what is this 💀", emoji: "💀", color: "#FF9F0A", sub: "deployed and prayed" }
-  : { label: "call 911. i'm not joking.", emoji: "☠️", color: "#FF3B30", sub: "I'm in physical pain" };
+function scoreMeta(s: number) {
+  if (s >= 75) return { grade: "A",  verdict: "actually fire 🔥",        color: "#32D74B", vibe: "understood the assignment" };
+  if (s >= 60) return { grade: "B",  verdict: "mid but has potential",    color: "#FFD60A", vibe: "participation trophy behavior" };
+  if (s >= 40) return { grade: "C",  verdict: "bestie what is this 💀",  color: "#FF9F0A", vibe: "deployed and prayed" };
+  if (s >= 20) return { grade: "D",  verdict: "it's giving disaster 🚨",  color: "#FF6B00", vibe: "I am in physical pain" };
+  return              { grade: "F",  verdict: "call 911 immediately ☠️",  color: "#FF2D55", vibe: "sent it without looking" };
+}
 
-const LIVE_TAUNTS = [
-  "🧠 AI reading every pixel judgementally…",
+const TAUNTS = [
+  "🧠 analyzing every pixel with judgment…",
   "😤 compiling the receipts…",
   "☕ brewing maximum shade…",
-  "🎯 identifying all the fumbles…",
-  "💅 this is going to sting…",
-  "🔬 evidence is overwhelming…",
-  "⚠️ preparing the verdict…",
+  "🎯 catching every fumble…",
+  "💅 writing things that will sting…",
+  "🔬 finding crimes you thought were hidden…",
+  "⚠️ this is going to be a lot…",
 ];
 
-/* ─── Score Arc ──────────────────────────────────────────────────────────── */
-function ScoreArc({ score, size = 72 }: { score: number; size?: number }) {
-  const sw = size > 80 ? 7 : 5.5;
+/* ─── Score badge ────────────────────────────────────────────────────────── */
+function ScoreBadge({ score, size = 56 }: { score: number; size?: number }) {
+  const m = scoreMeta(score);
+  const sw = 5;
   const r = (size - sw * 2) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
-  const t = SCORE_TIER(score);
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0, overflow: "visible" }}>
-      <defs>
-        <linearGradient id={`a${size}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={t.color} stopOpacity="0.4"/>
-          <stop offset="100%" stopColor={t.color}/>
-        </linearGradient>
-      </defs>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={sw}/>
-      <motion.circle cx={size/2} cy={size/2} r={r} fill="none"
-        stroke={`url(#a${size})`} strokeWidth={sw} strokeLinecap="round"
-        strokeDasharray={circ}
-        initial={{ strokeDashoffset: circ }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 1.6, ease: [0.16,1,0.3,1], delay: 0.2 }}
-        transform={`rotate(-90 ${size/2} ${size/2})`}
-        style={{ filter: `drop-shadow(0 0 8px ${t.color}99)` }}
-      />
-      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
-        fontSize={Math.round(size * 0.26)} fontWeight="800" fill="#F0EFF8"
-        fontFamily="system-ui,-apple-system,sans-serif">
-        {score}
-      </text>
-    </svg>
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: "absolute", inset: 0 }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={sw}/>
+        <motion.circle cx={size/2} cy={size/2} r={r} fill="none"
+          stroke={m.color} strokeWidth={sw} strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.4, ease: [0.16,1,0.3,1], delay: 0.15 }}
+          transform={`rotate(-90 ${size/2} ${size/2})`}
+          style={{ filter: `drop-shadow(0 0 6px ${m.color}88)` }}
+        />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: size * 0.28, fontWeight: 900, color: "#F0EFF8", lineHeight: 1, fontFamily: "system-ui,sans-serif" }}>{score}</span>
+      </div>
+    </div>
   );
 }
 
-/* ─── Browser Chrome Screenshot ─────────────────────────────────────────── */
-function SitePreview({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
-  const [ready, setReady] = useState(false);
+/* ─── Browser frame + screenshot ─────────────────────────────────────────── */
+function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
+  const [loaded, setLoaded] = useState(false);
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16,1,0.3,1] }}
-      style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)", marginBottom: 24, background: "#0A0A14" }}
+      style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)", marginBottom: 28, background: "#080814" }}
     >
-      {/* Chrome bar */}
-      <div style={{ padding: "9px 14px", background: "#13131E", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: 7 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "#10101E", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         {["#FF5F57","#FFBD2E","#27C93F"].map((c,i) => <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: c }}/>)}
-        <div style={{ flex: 1, marginLeft: 6, background: "#0B0B16", borderRadius: 5, padding: "3px 9px", fontSize: 10.5, color: "#3E3D5E", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div style={{ flex: 1, marginLeft: 6, background: "#080814", borderRadius: 4, padding: "3px 8px", fontSize: 10, color: "#3A3A5E", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {siteUrl}
         </div>
       </div>
-      {/* Screenshot */}
-      <div style={{ position: "relative", maxHeight: 260, overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, zIndex: 2, background: ready ? "transparent" : "#0A0A14", transition: "background 0.3s", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 100, pointerEvents: "none" }}>
-          {!ready && <motion.div style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.06)", borderTopColor: "#FF3B30", borderRadius: "50%" }} animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}/>}
-        </div>
+      <div style={{ position: "relative", maxHeight: 220, overflow: "hidden" }}>
+        {!loaded && (
+          <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <motion.div style={{ width: 18, height: 18, border: "2px solid #FF2D5533", borderTopColor: "#FF2D55", borderRadius: "50%" }}
+              animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}/>
+          </div>
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imgUrl} alt="site" onLoad={() => setReady(true)} style={{ width: "100%", display: "block", filter: "brightness(0.85) saturate(0.8)", opacity: ready ? 1 : 0, transition: "opacity 0.35s" }}/>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 60%, #0A0A14)", pointerEvents: "none" }}/>
-        {ready && (
-          <motion.div initial={{ opacity: 0, rotate: -22, scale: 1.8 }} animate={{ opacity: 1, rotate: -9, scale: 1 }} transition={{ duration: 0.35, delay: 0.15 }}
-            style={{ position: "absolute", top: 12, right: 12, padding: "4px 11px", border: "2.5px solid rgba(255,59,48,0.75)", color: "rgba(255,59,48,0.9)", fontSize: 12, fontWeight: 900, fontFamily: "serif", textTransform: "uppercase", letterSpacing: "0.07em", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", borderRadius: 4, pointerEvents: "none" }}>
-            🔥 ROASTING
+        <img src={imgUrl} alt="" onLoad={() => setLoaded(true)}
+          style={{ width: "100%", display: "block", filter: "brightness(0.8) saturate(0.75)", opacity: loaded ? 1 : 0, transition: "opacity 0.3s" }}/>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 50%, #080814)", pointerEvents: "none" }}/>
+        {loaded && (
+          <motion.div initial={{ opacity: 0, rotate: -25, scale: 2 }} animate={{ opacity: 1, rotate: -8, scale: 1 }}
+            transition={{ duration: 0.35, delay: 0.2 }}
+            style={{ position: "absolute", top: 10, right: 10, padding: "3px 10px", border: "2px solid #FF2D5588", color: "#FF2D55CC", fontSize: 11, fontWeight: 900, fontFamily: "serif", textTransform: "uppercase", letterSpacing: "0.1em", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", borderRadius: 3, pointerEvents: "none" }}>
+            ROASTED
           </motion.div>
         )}
       </div>
@@ -127,228 +124,215 @@ function SitePreview({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
   );
 }
 
-/* ─── Roast Finding ──────────────────────────────────────────────────────── */
-function RoastFinding({ f, i }: { f: Finding; i: number }) {
-  const s = SEV[f.severity];
+/* ─── BIG verdict hero ───────────────────────────────────────────────────── */
+function VerdictHero({ score, dims }: { score: number; dims: DimensionResult[] }) {
+  const m = scoreMeta(score);
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, delay: i * 0.07 }}
-      style={{ marginBottom: 10, position: "relative" }}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
+      style={{ marginBottom: 36, position: "relative" }}
     >
-      {/* Left severity stripe */}
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: 3, background: s.color, boxShadow: `0 0 8px ${s.color}88` }}/>
-      <div style={{ marginLeft: 14, padding: "10px 12px", background: s.bg, border: `1px solid ${s.color}1A`, borderRadius: "0 10px 10px 0" }}>
-        {/* Pill + title */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: f.quote ? 7 : 6 }}>
-          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 4, background: `${s.color}1C`, color: s.color, marginTop: 2 }}>
-            {s.pill}
-          </span>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#EDEEFA", lineHeight: 1.35 }}>{f.title}</p>
+      {/* Grade — massive background text */}
+      <div style={{ position: "absolute", right: -10, top: -20, fontSize: 160, fontWeight: 900, color: `${m.color}08`, lineHeight: 1, pointerEvents: "none", userSelect: "none", fontFamily: "system-ui,sans-serif" }}>
+        {m.grade}
+      </div>
+
+      {/* Score number — huge */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 6 }}>
+        <motion.span
+          initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.34,1.56,0.64,1], delay: 0.1 }}
+          style={{ fontSize: 96, fontWeight: 900, lineHeight: 0.9, color: m.color, letterSpacing: "-0.04em", fontFamily: "system-ui,sans-serif", filter: `drop-shadow(0 0 30px ${m.color}44)` }}
+        >
+          {score}
+        </motion.span>
+        <div style={{ paddingBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3A3A5E", marginBottom: 2 }}>/ 100</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#3A3A5E" }}>ROAST SCORE</div>
         </div>
-        {/* Quote block */}
-        {f.quote && (
-          <div style={{ margin: "0 0 7px", padding: "6px 10px", background: "rgba(0,0,0,0.35)", borderRadius: 6, fontSize: 11.5, fontStyle: "italic", color: "#7E7D9A", lineHeight: 1.5, borderLeft: `2px solid ${s.color}44` }}>
-            &ldquo;{f.quote}&rdquo;
-          </div>
-        )}
-        {/* Fix */}
-        <p style={{ margin: 0, fontSize: 11.5, color: "#6E6D8E", lineHeight: 1.45 }}>
-          <span style={{ color: s.color, fontWeight: 800 }}>fix → </span>{f.action}
-        </p>
+      </div>
+
+      {/* Verdict line */}
+      <motion.p initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.4 }}
+        style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 900, color: "#F0EFF8", lineHeight: 1.1, letterSpacing: "-0.025em" }}>
+        {m.verdict}
+      </motion.p>
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+        style={{ margin: "0 0 20px", fontSize: 13, color: "#4A4A6E", fontStyle: "italic" }}>
+        {m.vibe}
+      </motion.p>
+
+      {/* Dim score pills row */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {dims.map(d => {
+          const meta = DIM[d.dimension];
+          const c = d.score >= 65 ? "#32D74B" : d.score >= 40 ? "#FFD60A" : "#FF2D55";
+          return (
+            <motion.span key={d.dimension}
+              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + dims.indexOf(d) * 0.05 }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: `${c}10`, border: `1px solid ${c}22`, fontSize: 11, color: c, fontWeight: 700 }}
+            >
+              {meta?.emoji} <span style={{ color: "#4A4A6E", fontWeight: 400 }}>{meta?.label}</span> {d.score}
+            </motion.span>
+          );
+        })}
       </div>
     </motion.div>
   );
 }
 
-/* ─── Roast Card (per dimension) ─────────────────────────────────────────── */
-function RoastCard({ result, idx }: { result: DimensionResult; idx: number }) {
-  const [open, setOpen] = useState(true);
-  const meta = DIM_META[result.dimension] ?? { label: result.dimension, emoji: "🎯", taunt: "" };
-  const t = SCORE_TIER(result.score);
-  const worstSev = result.findings.find(f => f.severity === "critical") ? "critical"
-    : result.findings.find(f => f.severity === "high") ? "high"
-    : result.findings.find(f => f.severity === "medium") ? "medium" : "good";
-  const ws = SEV[worstSev];
-
+/* ─── Single finding ─────────────────────────────────────────────────────── */
+function Finding({ f, i }: { f: Finding; i: number }) {
+  const s = SEV[f.severity];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 28 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: idx * 0.1, ease: [0.16,1,0.3,1] }}
-      style={{ borderRadius: 20, overflow: "hidden", marginBottom: 14 }}
-      whileHover={{ y: -2 }}
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: i * 0.06 }}
+      style={{ marginBottom: 12 }}
     >
-      {/* Card header — the roast verdict */}
-      <div style={{
-        background: `linear-gradient(135deg, #16162A 0%, #0F0F1C 100%)`,
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderBottom: open ? `1px solid ${ws.color}18` : "1px solid rgba(255,255,255,0.07)",
-        borderRadius: open ? "20px 20px 0 0" : 20,
-        padding: "20px 22px",
-      }}>
-        {/* Top row: emoji label + score arc */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 14 }}>
-          {/* Dim icon */}
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ws.color}12`, border: `1px solid ${ws.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-            {meta.emoji}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        {/* Left accent line */}
+        <div style={{ width: 2.5, minHeight: 40, borderRadius: 2, background: s.color, flexShrink: 0, marginTop: 3, boxShadow: `0 0 6px ${s.color}66` }}/>
+        <div style={{ flex: 1 }}>
+          {/* Severity + title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 4, background: s.bg, color: s.color }}>
+              {s.label}
+            </span>
+            <span style={{ fontSize: 13.5, fontWeight: 800, color: "#DDDDF0", lineHeight: 1.3 }}>{f.title}</span>
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ margin: "0 0 2px", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3E3D5E" }}>
-              {meta.label}
-            </p>
-            <p style={{ margin: 0, fontSize: 11, color: t.color, fontWeight: 700 }}>
-              {t.emoji} {t.label}
-            </p>
-          </div>
-          {/* Score + toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <ScoreArc score={result.score} size={52} />
-            <button onClick={() => setOpen(v => !v)} style={{ background: "rgba(255,255,255,0.04)", border: "none", color: "#3E3D5E", fontSize: 10, padding: "5px 8px", borderRadius: 6, cursor: "pointer" }}>
-              {open ? "▲" : "▼"}
-            </button>
-          </div>
-        </div>
-
-        {/* Summary — the roast quote, hero text */}
-        <div style={{
-          background: "rgba(0,0,0,0.3)",
-          border: `1px solid ${ws.color}22`,
-          borderLeft: `3px solid ${ws.color}`,
-          borderRadius: "0 10px 10px 0",
-          padding: "12px 16px",
-        }}>
-          <p style={{ margin: 0, fontSize: 14, color: "#D4D3EE", lineHeight: 1.55, fontStyle: "italic", fontWeight: 500 }}>
-            &ldquo;{result.summary}&rdquo;
+          {/* Quote block */}
+          {f.quote && (
+            <div style={{ margin: "0 0 7px", padding: "8px 12px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 12, fontStyle: "italic", color: "#5A5A80", lineHeight: 1.55 }}>
+              <span style={{ color: s.color, fontWeight: 900, fontStyle: "normal" }}>❝ </span>{f.quote}<span style={{ color: s.color, fontWeight: 900, fontStyle: "normal" }}> ❞</span>
+            </div>
+          )}
+          {/* Fix */}
+          <p style={{ margin: 0, fontSize: 12, color: "#4A4A6E", lineHeight: 1.5 }}>
+            <span style={{ color: s.color, fontWeight: 800, fontSize: 11 }}>FIX → </span>{f.action}
           </p>
         </div>
       </div>
+    </motion.div>
+  );
+}
 
-      {/* Findings */}
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-            transition={{ duration: 0.28, ease: [0.16,1,0.3,1] }}
-            style={{ overflow: "hidden" }}
-          >
-            <div style={{
-              background: "linear-gradient(180deg, #0D0D1A 0%, #0A0A14 100%)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderTop: "none", borderRadius: "0 0 20px 20px",
-              padding: "16px 20px 18px",
-            }}>
-              <p style={{ margin: "0 0 12px", fontSize: 9.5, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#2E2D48" }}>
-                The receipts ({result.findings.length} findings)
-              </p>
-              {result.findings.map((f, i) => <RoastFinding key={i} f={f} i={i} />)}
+/* ─── Roast Card ─────────────────────────────────────────────────────────── */
+function RoastCard({ result, idx }: { result: DimensionResult; idx: number }) {
+  const [open, setOpen] = useState(true);
+  const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
+  const sm = scoreMeta(result.score);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 32 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, delay: idx * 0.12, ease: [0.16,1,0.3,1] }}
+      style={{ marginBottom: 16 }}
+    >
+      {/* Card */}
+      <div style={{
+        borderRadius: 18,
+        border: "1px solid rgba(255,255,255,0.07)",
+        overflow: "hidden",
+        background: "linear-gradient(160deg, #131328 0%, #0C0C1A 100%)",
+        boxShadow: `0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)`,
+      }}>
+        {/* Colored top border */}
+        <div style={{ height: 2, background: `linear-gradient(90deg, ${meta.color} 0%, ${meta.color}44 100%)` }}/>
+
+        {/* Header row */}
+        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", padding: "18px 20px 14px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 14, textAlign: "left" }}>
+          {/* Dim icon box */}
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: `${meta.color}14`, border: `1px solid ${meta.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+            {meta.emoji}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+              <span style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: meta.color }}>
+                {meta.label}
+              </span>
+              {/* Score inline pill */}
+              <span style={{ fontSize: 11, fontWeight: 900, padding: "1px 7px", borderRadius: 6, background: `${sm.color}15`, color: sm.color, border: `1px solid ${sm.color}25` }}>
+                {result.score}/100
+              </span>
+              <span style={{ fontSize: 11, color: "#3A3A5E" }}>· {sm.verdict.split(" ")[0]}</span>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {/* Summary — BIG roast quote */}
+            <p style={{ margin: 0, fontSize: 14.5, color: "#C8C8E8", lineHeight: 1.55, fontStyle: "italic" }}>
+              {result.summary}
+            </p>
+          </div>
+
+          {/* Score badge */}
+          <div style={{ flexShrink: 0 }}>
+            <ScoreBadge score={result.score} size={50} />
+          </div>
+        </button>
+
+        {/* Findings */}
+        <AnimatePresence>
+          {open && (
+            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+              transition={{ duration: 0.28, ease: [0.16,1,0.3,1] }}
+              style={{ overflow: "hidden" }}
+            >
+              <div style={{ padding: "0 20px 18px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                {/* Receipts header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 0 10px" }}>
+                  <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3A3A5E" }}>
+                    the receipts
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }}/>
+                  <span style={{ fontSize: 9, color: "#2E2E4E" }}>{result.findings.length} counts</span>
+                </div>
+                {result.findings.map((f, i) => <Finding key={i} f={f} i={i} />)}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Collapse toggle */}
+        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", padding: "8px", background: "rgba(255,255,255,0.015)", border: "none", borderTop: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", fontSize: 10, color: "#3A3A5E" }}>
+          {open ? "▲ collapse" : "▼ show receipts"}
+        </button>
+      </div>
     </motion.div>
   );
 }
 
 /* ─── Skeleton ───────────────────────────────────────────────────────────── */
-function RoastSkeleton({ dimKey }: { dimKey: string }) {
-  const meta = DIM_META[dimKey] ?? { label: dimKey, emoji: "🎯", taunt: "working on it…" };
+function Skeleton({ dimKey }: { dimKey: string }) {
+  const meta = DIM[dimKey] ?? { label: dimKey, emoji: "🔥", color: "#FF2D55" };
   return (
-    <div style={{
-      borderRadius: 20, marginBottom: 14,
-      border: "1px solid rgba(255,255,255,0.05)",
-      background: "linear-gradient(135deg, #14142A 0%, #0F0F1C 100%)",
-      padding: "20px 22px",
-      display: "flex", alignItems: "center", gap: 16,
-    }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,59,48,0.06)", border: "1px solid rgba(255,59,48,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, opacity: 0.4 }}>
-        {meta.emoji}
+    <div style={{ marginBottom: 16, borderRadius: 18, border: "1px solid rgba(255,255,255,0.05)", background: "linear-gradient(160deg, #131328 0%, #0C0C1A 100%)", overflow: "hidden" }}>
+      <div style={{ height: 2, background: `${meta.color}33` }}/>
+      <div style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 42, height: 42, borderRadius: 12, background: `${meta.color}0A`, border: `1px solid ${meta.color}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, opacity: 0.4 }}>
+          {meta.emoji}
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2E2E4E" }}>{meta.label}</p>
+          <motion.div style={{ height: 2, borderRadius: 2, background: `${meta.color}33`, transformOrigin: "left" }}
+            animate={{ scaleX: [0.1, 0.9, 0.4, 0.7, 0.2, 0.8] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </div>
+        <motion.div style={{ width: 44, height: 44, border: `4px solid ${meta.color}22`, borderTopColor: meta.color, borderRadius: "50%" }}
+          animate={{ rotate: 360 }} transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}/>
       </div>
-      <div style={{ flex: 1 }}>
-        <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2E2D48" }}>
-          {meta.label}
-        </p>
-        <p style={{ margin: 0, fontSize: 11.5, color: "#FF3B3055" }}>{meta.taunt}</p>
-      </div>
-      <motion.div style={{ width: 52, height: 52, border: "5px solid rgba(255,255,255,0.04)", borderTopColor: "#FF3B3066", borderRadius: "50%" }}
-        animate={{ rotate: 360 }} transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}/>
     </div>
   );
 }
 
-/* ─── Locked Card ────────────────────────────────────────────────────────── */
-function LockedCard({ label, emoji }: { label: string; emoji: string }) {
+/* ─── Locked ─────────────────────────────────────────────────────────────── */
+function Locked({ label, emoji }: { label: string; emoji: string }) {
   return (
-    <div style={{ borderRadius: 12, padding: "11px 16px", background: "rgba(8,8,18,0.5)", border: "1px dashed rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-      <span style={{ fontSize: 14, opacity: 0.25 }}>{emoji}</span>
-      <span style={{ fontSize: 12.5, color: "#2E2D48", fontWeight: 600 }}>{label}</span>
-      <Lock size={11} style={{ color: "#2E2D48", marginLeft: "auto" }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, border: "1px dashed rgba(255,255,255,0.06)", marginBottom: 6 }}>
+      <span style={{ opacity: 0.2, fontSize: 14 }}>{emoji}</span>
+      <span style={{ fontSize: 12, color: "#2E2E4E", fontWeight: 500 }}>{label}</span>
+      <Lock size={10} style={{ color: "#2E2E4E", marginLeft: "auto" }}/>
     </div>
-  );
-}
-
-/* ─── Verdict Banner ─────────────────────────────────────────────────────── */
-function VerdictBanner({ score, dims }: { score: number; dims: DimensionResult[] }) {
-  const t = SCORE_TIER(score);
-  const particles = ["💀","🔥","😭","💅","⚰️","😤","🤡","💔"];
-  return (
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, ease: [0.16,1,0.3,1] }}
-      style={{
-        borderRadius: 24, marginBottom: 32, overflow: "visible",
-        background: "linear-gradient(145deg, #16162A 0%, #0F0F1C 100%)",
-        border: `1px solid ${t.color}20`,
-        boxShadow: `0 0 60px ${t.color}10, 0 8px 40px rgba(0,0,0,0.5)`,
-        padding: "28px 24px",
-        position: "relative",
-      }}
-    >
-      {/* Ambient glow */}
-      <div style={{ position: "absolute", inset: 0, borderRadius: 24, background: `radial-gradient(ellipse at 50% 0%, ${t.color}08 0%, transparent 60%)`, pointerEvents: "none" }}/>
-
-      {/* Particle burst */}
-      <div style={{ position: "absolute", top: "40%", left: "20%", pointerEvents: "none" }}>
-        {particles.map((p, i) => (
-          <motion.span key={i}
-            initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
-            animate={{ opacity: [0, 1, 0], x: Math.cos(i * 45 * Math.PI/180) * 70, y: Math.sin(i * 45 * Math.PI/180) * 70, scale: [0,1.3,0] }}
-            transition={{ duration: 1.3, delay: 0.4 + i * 0.06, ease: "easeOut" }}
-            style={{ position: "absolute", fontSize: 18 }}
-          >{p}</motion.span>
-        ))}
-      </div>
-
-      {/* Main content */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 16 }}>
-        {/* Score arc big */}
-        <div style={{ position: "relative" }}>
-          <div style={{ position: "absolute", inset: -12, borderRadius: "50%", background: `radial-gradient(circle, ${t.color}18 0%, transparent 70%)` }}/>
-          <ScoreArc score={score} size={110} />
-        </div>
-
-        {/* Verdict text */}
-        <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 12px", borderRadius: 99, background: `${t.color}12`, border: `1px solid ${t.color}25`, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: t.color }}>
-              ROAST VERDICT
-            </span>
-          </div>
-          <h2 style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 900, color: t.color, lineHeight: 1.1, letterSpacing: "-0.025em" }}>
-            {t.label}
-          </h2>
-          <p style={{ margin: "0 0 18px", fontSize: 12, color: "#3E3D5E", fontStyle: "italic" }}>{t.sub}</p>
-
-          {/* Mini score pills */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
-            {dims.map(d => {
-              const c = d.score >= 65 ? "#30D158" : d.score >= 40 ? "#FFD60A" : "#FF3B30";
-              return (
-                <span key={d.dimension} style={{ padding: "3px 9px", borderRadius: 6, background: `${c}10`, border: `1px solid ${c}25`, fontSize: 10.5, color: c, fontWeight: 700 }}>
-                  {DIM_META[d.dimension]?.emoji} {d.score}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </motion.div>
   );
 }
 
@@ -360,92 +344,85 @@ function Upsell({ siteUrl }: { siteUrl: string }) {
   async function pay() {
     setLoading(true); setErr("");
     try {
-      const res = await fetch("/api/stripe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ siteUrl }) });
-      const data = await res.json() as { url?: string; error?: string };
-      if (data.url) window.location.href = data.url;
-      else { setErr(data.error ?? "Payment failed"); setLoading(false); }
-    } catch (e) { setErr(e instanceof Error ? e.message : "Payment failed"); setLoading(false); }
+      const r = await fetch("/api/stripe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ siteUrl }) });
+      const d = await r.json() as { url?: string; error?: string };
+      if (d.url) window.location.href = d.url;
+      else { setErr(d.error ?? "failed"); setLoading(false); }
+    } catch (e) { setErr(e instanceof Error ? e.message : "error"); setLoading(false); }
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5, ease: [0.16,1,0.3,1] }}
-      style={{ marginTop: 10, borderRadius: 22, border: "1px solid rgba(255,59,48,0.18)", overflow: "hidden", background: "linear-gradient(135deg, #1C0A06 0%, #130E22 55%, #0D0D1A 100%)", position: "relative" }}
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.45 }}
+      style={{ marginTop: 8, borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,45,85,0.2)", background: "linear-gradient(160deg, #1C0810 0%, #120A1E 60%, #0C0C1A 100%)", position: "relative" }}
     >
-      <div style={{ position: "absolute", top: -40, left: "50%", transform: "translateX(-50%)", width: 260, height: 260, background: "radial-gradient(circle, rgba(255,59,48,0.07) 0%, transparent 70%)", pointerEvents: "none" }}/>
+      <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 280, height: 280, background: "radial-gradient(circle, rgba(255,45,85,0.07) 0%, transparent 65%)", pointerEvents: "none" }}/>
       <div style={{ padding: "28px 22px", textAlign: "center", position: "relative" }}>
-        {/* Teaser text */}
-        <div style={{ fontSize: 28, marginBottom: 6 }}>🔒</div>
-        <h3 style={{ margin: "0 0 8px", fontSize: 21, fontWeight: 900, color: "#F0EFF8", letterSpacing: "-0.02em" }}>
-          6 more roasts are waiting
+        <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+        <h3 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 900, color: "#F0EFF8", letterSpacing: "-0.02em" }}>
+          6 more roasts waiting to destroy you
         </h3>
-        <p style={{ margin: "0 0 5px", fontSize: 13, color: "#6E6D8E", lineHeight: 1.55, maxWidth: 340, marginLeft: "auto", marginRight: "auto" }}>
-          That was just the appetizer. The full roast goes deeper:
+        <p style={{ margin: "0 0 16px", fontSize: 13, color: "#4A4A6E", lineHeight: 1.6, maxWidth: 340, marginLeft: "auto", marginRight: "auto" }}>
+          You survived the preview. The full roast is worse. UX, Accessibility, Trust, Mobile, Performance, SEO — all getting dragged.
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center", margin: "12px auto 22px", maxWidth: 380 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center", marginBottom: 22 }}>
           {LOCKED_DIMS.map(d => (
-            <span key={d.key} style={{ padding: "3px 10px", borderRadius: 99, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "#4E4D6E", fontWeight: 500 }}>
+            <span key={d.key} style={{ padding: "3px 9px", borderRadius: 99, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 11.5, color: "#3A3A5E" }}>
               {d.emoji} {d.label}
             </span>
           ))}
         </div>
         <button onClick={pay} disabled={loading} style={{
-          display: "inline-flex", alignItems: "center", gap: 9,
-          padding: "14px 28px", borderRadius: 13,
-          background: loading ? "#200C08" : "linear-gradient(135deg, #FF3B30 0%, #FF6B3D 100%)",
-          color: loading ? "#7E3D38" : "#fff", border: "none", cursor: loading ? "default" : "pointer",
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "13px 26px", borderRadius: 12,
+          background: loading ? "#180608" : "linear-gradient(135deg, #FF2D55 0%, #FF6B3D 100%)",
+          color: loading ? "#6E2030" : "#fff", border: "none", cursor: loading ? "default" : "pointer",
           fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em",
-          boxShadow: loading ? "none" : "0 6px 28px rgba(255,59,48,0.35)", transition: "all 0.18s",
+          boxShadow: loading ? "none" : "0 4px 24px rgba(255,45,85,0.35)", transition: "all 0.18s",
         }}
           onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
         >
           {loading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }}/> : <CreditCard size={15}/>}
-          {loading ? "Heading to Stripe…" : "Unlock Full Roast — ₹2,499"}
+          {loading ? "Going to Stripe…" : "Unlock Full Roast — ₹2,499"}
         </button>
-        {err && <p style={{ margin: "10px 0 0", fontSize: 12, color: "#FF3B30" }}>{err}</p>}
-        <p style={{ margin: "12px 0 0", fontSize: 10.5, color: "#2E2D48" }}>One-time · No subscription · Stripe secured</p>
+        {err && <p style={{ margin: "8px 0 0", fontSize: 12, color: "#FF2D55" }}>{err}</p>}
+        <p style={{ margin: "12px 0 0", fontSize: 10, color: "#2E2E4E" }}>one-time · no subscription · stripe</p>
       </div>
     </motion.div>
   );
 }
 
-/* ─── Main ───────────────────────────────────────────────────────────────── */
+/* ─── Page ───────────────────────────────────────────────────────────────── */
 function AnalyzeContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url") ?? "";
   const tier = (searchParams.get("tier") ?? "free") as "free" | "full";
   const paid = searchParams.get("paid") === "1";
 
-  const [status, setStatus]     = useState("Warming up the roast machine…");
-  const [dims, setDims]         = useState<DimensionResult[]>([]);
-  const [done, setDone]         = useState(false);
-  const [score, setScore]       = useState<number | null>(null);
-  const [error, setError]       = useState<string | null>(null);
-  const [shot, setShot]         = useState<string | null>(null);
-  const [taunt, setTaunt]       = useState(0);
+  const [status, setStatus] = useState("warming up the roast machine…");
+  const [dims, setDims]     = useState<DimensionResult[]>([]);
+  const [done, setDone]     = useState(false);
+  const [score, setScore]   = useState<number | null>(null);
+  const [error, setError]   = useState<string | null>(null);
+  const [shot, setShot]     = useState<string | null>(null);
+  const [taunt, setTaunt]   = useState(0);
   const started = useRef(false);
 
   useEffect(() => {
     if (!url || started.current) return;
     started.current = true;
     const form = new FormData();
-    form.append("url", url);
-    form.append("tier", tier);
+    form.append("url", url); form.append("tier", tier);
     if (paid) form.append("paid", "1");
-
     const ctrl = new AbortController();
     fetch("/api/analyze", { method: "POST", body: form, signal: ctrl.signal })
       .then(async res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const reader = res.body!.getReader();
-        const dec = new TextDecoder();
-        let buf = "";
+        const reader = res.body!.getReader(); const dec = new TextDecoder(); let buf = "";
         while (true) {
-          const { done: rd, value } = await reader.read();
-          if (rd) break;
+          const { done: rd, value } = await reader.read(); if (rd) break;
           buf += dec.decode(value, { stream: true });
-          const parts = buf.split("\n\n");
-          buf = parts.pop() ?? "";
+          const parts = buf.split("\n\n"); buf = parts.pop() ?? "";
           for (const p of parts) {
             if (!p.startsWith("data: ")) continue;
             try {
@@ -455,7 +432,7 @@ function AnalyzeContent() {
               if (ev.type === "dimension")  setDims(prev => [...prev, ev.payload]);
               if (ev.type === "done")       { setScore(ev.payload.overallScore); setDone(true); }
               if (ev.type === "error")      setError(ev.payload.message);
-            } catch { /**/ }
+            } catch {/**/ }
           }
         }
       })
@@ -465,84 +442,71 @@ function AnalyzeContent() {
 
   useEffect(() => {
     if (done || error) return;
-    const t = setInterval(() => setTaunt(i => (i + 1) % LIVE_TAUNTS.length), 2600);
+    const t = setInterval(() => setTaunt(i => (i + 1) % TAUNTS.length), 2600);
     return () => clearInterval(t);
   }, [done, error]);
 
   if (!url) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ color: "#6E6D8E", marginBottom: 16 }}>No URL provided.</p>
-        <Link href="/" style={{ color: "#FF3B30", fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}><ArrowLeft size={14}/> Back</Link>
-      </div>
+      <Link href="/" style={{ color: "#FF2D55", fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}><ArrowLeft size={14}/> back</Link>
     </div>
   );
 
   const pendingDims = tier === "full"
-    ? Object.keys(DIM_META).filter(d => !dims.find(r => r.dimension === d))
+    ? Object.keys(DIM).filter(d => !dims.find(r => r.dimension === d))
     : FREE_DIMS.filter(d => !dims.find(r => r.dimension === d));
 
   return (
-    <div style={{ minHeight: "100vh", maxWidth: 700, margin: "0 auto", padding: "40px 20px 80px", color: "#F0EFF8" }}>
+    <div style={{ minHeight: "100vh", maxWidth: 680, margin: "0 auto", padding: "36px 18px 80px", color: "#F0EFF8" }}>
 
-      {/* Nav */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
-        <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#2E2D48", textDecoration: "none" }}
+      {/* Top nav */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#2E2E4E", textDecoration: "none" }}
           onMouseEnter={e => (e.currentTarget.style.color = "#6E6D8E")}
-          onMouseLeave={e => (e.currentTarget.style.color = "#2E2D48")}
+          onMouseLeave={e => (e.currentTarget.style.color = "#2E2E4E")}
         >
-          <ArrowLeft size={12}/> RoastLab
+          <ArrowLeft size={11}/> roastlab
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Flame size={12} color="#FF3B30"/>
-          <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#FF3B30" }}>
-            {tier === "full" && paid ? "Full Roast" : "Free Roast"}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <Flame size={11} color="#FF2D55"/>
+          <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#FF2D55" }}>
+            {tier === "full" && paid ? "full roast" : "free roast"}
           </span>
-          <span style={{ fontSize: 10, color: "#2E2D48" }}>·</span>
-          <span style={{ fontSize: 10, color: "#2E2D48" }}>{dims.length}/{tier === "full" ? 9 : 3} done</span>
+          <span style={{ fontSize: 10, color: "#2E2E4E" }}>· {dims.length}/{tier === "full" ? 9 : 3}</span>
         </div>
       </div>
 
-      {/* Site URL */}
-      <div style={{ marginBottom: 20 }}>
-        <a href={url} target="_blank" rel="noopener noreferrer" style={{
-          display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 13.5, fontWeight: 600, color: "#EDEEFA",
-          textDecoration: "none", fontFamily: "monospace",
-          maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          {url} <ExternalLink size={11} style={{ color: "#3E3D5E", flexShrink: 0 }}/>
-        </a>
-      </div>
+      {/* URL */}
+      <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#DDDDF0", textDecoration: "none", fontFamily: "monospace", marginBottom: 20, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {url} <ExternalLink size={10} style={{ color: "#3A3A5E", flexShrink: 0 }}/>
+      </a>
 
       {/* Screenshot */}
-      <AnimatePresence>
-        {shot && <SitePreview imgUrl={shot} siteUrl={url} />}
-      </AnimatePresence>
+      <AnimatePresence>{shot && <SiteFrame imgUrl={shot} siteUrl={url} />}</AnimatePresence>
 
-      {/* Verdict banner — shown when done */}
+      {/* Big verdict */}
       <AnimatePresence>
-        {done && score !== null && <VerdictBanner score={score} dims={dims} />}
+        {done && score !== null && <VerdictHero score={score} dims={dims} />}
       </AnimatePresence>
 
       {/* Live status */}
       {!done && !error && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", marginBottom: 22, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12 }}>
-          <motion.div style={{ width: 13, height: 13, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.05)", borderTopColor: "#FF3B30", flexShrink: 0 }}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 20, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10 }}>
+          <motion.div style={{ width: 12, height: 12, border: "2px solid rgba(255,45,85,0.15)", borderTopColor: "#FF2D55", borderRadius: "50%", flexShrink: 0 }}
             animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}/>
           <AnimatePresence mode="wait">
             <motion.span key={dims.length === 0 ? "s" : taunt}
               initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              style={{ fontSize: 12, color: "#6E6D8E" }}
+              style={{ fontSize: 12, color: "#5A5A80" }}
             >
-              {dims.length === 0 ? status : LIVE_TAUNTS[taunt]}
+              {dims.length === 0 ? status : TAUNTS[taunt]}
             </motion.span>
           </AnimatePresence>
           <div style={{ marginLeft: "auto", display: "flex", gap: 3 }}>
             {[0,1,2].map(i => (
-              <motion.div key={i} style={{ width: 3.5, height: 3.5, borderRadius: "50%", background: "#FF3B30" }}
-                animate={{ opacity: [0.15,1,0.15] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.22 }}/>
+              <motion.div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: "#FF2D55" }}
+                animate={{ opacity: [0.1, 1, 0.1] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}/>
             ))}
           </div>
         </div>
@@ -551,43 +515,44 @@ function AnalyzeContent() {
       {/* Error */}
       {error && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ padding: "14px 16px", marginBottom: 22, borderRadius: 12, background: "rgba(255,59,48,0.06)", border: "1px solid rgba(255,59,48,0.2)", fontSize: 13.5, color: "#FF6B3D", lineHeight: 1.5 }}>
+          style={{ padding: "12px 16px", marginBottom: 20, borderRadius: 10, background: "rgba(255,45,85,0.06)", border: "1px solid rgba(255,45,85,0.18)", fontSize: 13, color: "#FF6B8A", lineHeight: 1.5 }}>
           ☠️ {error}
         </motion.div>
       )}
 
-      {/* Section label */}
+      {/* Roasts section label */}
       {(dims.length > 0 || (!done && !error)) && (
-        <p style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#2E2D48", marginBottom: 4 }}>
-          {done ? "🔥 The Full Damage" : "📍 Live Roasting…"}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#2E2E4E" }}>
+            {done ? "🔥 the full damage" : "📡 live roasting…"}
+          </span>
+          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }}/>
+        </div>
       )}
 
-      {/* Roast cards */}
-      <div style={{ marginTop: 8 }}>
-        {dims.map((d, i) => <RoastCard key={d.dimension} result={d} idx={i} />)}
-        {!done && !error && pendingDims.map(d => <RoastSkeleton key={d} dimKey={d} />)}
-      </div>
+      {/* Cards */}
+      {dims.map((d, i) => <RoastCard key={d.dimension} result={d} idx={i} />)}
+      {!done && !error && pendingDims.map(d => <Skeleton key={d} dimKey={d} />)}
 
       {/* Locked + upsell */}
       {done && tier !== "full" && (
         <>
           <div style={{ marginTop: 20 }}>
-            <p style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#2E2D48", marginBottom: 10 }}>
-              🔒 Still Locked (6 of 9)
-            </p>
-            {LOCKED_DIMS.map(d => <LockedCard key={d.key} label={d.label} emoji={d.emoji} />)}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#2E2E4E" }}>🔒 still locked</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }}/>
+            </div>
+            {LOCKED_DIMS.map(d => <Locked key={d.key} label={d.label} emoji={d.emoji} />)}
           </div>
           <Upsell siteUrl={url} />
         </>
       )}
 
-      {/* Full done */}
       {done && tier === "full" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-          style={{ marginTop: 16, padding: "14px 18px", borderRadius: 14, background: "rgba(48,209,88,0.04)", border: "1px solid rgba(48,209,88,0.15)", display: "flex", alignItems: "center", gap: 10 }}>
+          style={{ marginTop: 16, padding: "14px 18px", borderRadius: 12, background: "rgba(50,215,75,0.04)", border: "1px solid rgba(50,215,75,0.14)", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>🏆</span>
-          <span style={{ fontSize: 13, color: "#30D158", fontWeight: 600 }}>All 9 roasts delivered. The receipts are in. 💀</span>
+          <span style={{ fontSize: 13, color: "#32D74B", fontWeight: 600 }}>all 9 roasts delivered. the receipts are in. 💀</span>
         </motion.div>
       )}
     </div>
@@ -598,7 +563,7 @@ export default function AnalyzePage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <motion.div style={{ width: 26, height: 26, border: "3px solid rgba(255,255,255,0.05)", borderTopColor: "#FF3B30", borderRadius: "50%" }}
+        <motion.div style={{ width: 24, height: 24, border: "2.5px solid rgba(255,45,85,0.15)", borderTopColor: "#FF2D55", borderRadius: "50%" }}
           animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}/>
       </div>
     }>
