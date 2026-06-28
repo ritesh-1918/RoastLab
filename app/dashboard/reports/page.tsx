@@ -5,6 +5,9 @@ import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
 import { LayoutDashboard, FileText, User, CreditCard, ExternalLink, Search, ArrowRight } from 'lucide-react';
 import { getUserAudits } from '@/lib/db';
+import { ScoreBadge } from '@/components/ui/score-badge';
+import { TierBadge } from '@/components/ui/tier-badge';
+import { relativeTime } from '@/lib/utils';
 
 const NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -87,24 +90,18 @@ export default async function ReportsPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {audits.map((a) => {
-                const scoreColor = a.score >= 70 ? '#32D74B' : a.score >= 45 ? '#FFD60A' : '#FF2D55';
                 const dimCount = Array.isArray(a.dimensions) ? a.dimensions.length : 0;
-                const date = new Date(a.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                 return (
                   <Link key={a.id} href={`/analyze?url=${encodeURIComponent(a.url)}&tier=${a.tier}`}
                     style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, background: '#111117', border: '1px solid #1E1E28', textDecoration: 'none' }}
                   >
-                    <div style={{ width: 48, height: 48, borderRadius: 10, background: `${scoreColor}15`, border: `1px solid ${scoreColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: scoreColor, flexShrink: 0 }}>
-                      {a.score}
-                    </div>
+                    <ScoreBadge score={a.score} size="md" showGrade />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 600, color: '#FAFAFA', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.url}</p>
-                      <p style={{ fontSize: 12, color: '#4A4A62', margin: 0 }}>{date} · {dimCount} dimensions · {a.tier} roast</p>
+                      <p style={{ fontSize: 12, color: '#4A4A62', margin: 0 }}>{relativeTime(a.created_at)} · {dimCount} dims</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: a.tier === 'full' ? '#E8334A18' : '#27273A', color: a.tier === 'full' ? '#E8334A' : '#8B8BA3', fontWeight: 600 }}>
-                        {a.tier}
-                      </span>
+                      <TierBadge tier={a.tier} />
                       <ArrowRight size={12} style={{ color: '#4A4A62' }} />
                     </div>
                   </Link>
