@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Logo } from '@/components/logo';
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/nextjs';
 
 const NAV_LINKS = [
   { label: 'How it works', href: '#how-it-works' },
@@ -11,6 +12,7 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
     const check = () => setScrolled(window.scrollY > 16);
@@ -95,59 +97,62 @@ export function Navbar() {
             ))}
           </div>
 
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button
+          {isSignedIn ? (
+            <>
+              <Link
+                href="/dashboard"
                 style={{
                   fontSize: 13,
                   fontWeight: 500,
                   color: 'var(--text-dim)',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
+                  textDecoration: 'none',
                   padding: '6px 10px',
                   borderRadius: 6,
-                  marginRight: 4,
+                  marginRight: 8,
                 }}
               >
-                Sign in
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: '#fff',
-                  background: 'var(--ember)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '7px 16px',
-                  borderRadius: 8,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                Get Roasted →
-              </button>
-            </SignUpButton>
-          </SignedOut>
-          <SignedIn>
-            <a
-              href="/dashboard"
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: 'var(--text-dim)',
-                textDecoration: 'none',
-                padding: '6px 10px',
-                borderRadius: 6,
-                marginRight: 8,
-              }}
-            >
-              Dashboard
-            </a>
-            <UserButton />
-          </SignedIn>
+                Dashboard
+              </Link>
+              <UserButton />
+            </>
+          ) : (
+            <>
+              <SignInButton mode="modal">
+                <button
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--text-dim)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    marginRight: 4,
+                  }}
+                >
+                  Sign in
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: 'var(--ember)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '7px 16px',
+                    borderRadius: 8,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Get Roasted →
+                </button>
+              </SignUpButton>
+            </>
+          )}
         </nav>
       </div>
     </header>
