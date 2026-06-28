@@ -480,7 +480,7 @@ function AuthGate({ onSignIn }: { onSignIn: () => void }) {
           Free audit used
         </h2>
         <p style={{ margin: "0 0 24px", fontSize: 14, color: "#8B8BA3", lineHeight: 1.6 }}>
-          {"You&apos;ve used your 1 free audit. Sign in to get 2 more free audits and keep roasting."}
+          {"You've used your 1 free audit. Sign in to get 2 more free audits and keep roasting."}
         </p>
         <button
           onClick={() => { openSignIn(); onSignIn(); }}

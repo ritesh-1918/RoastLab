@@ -20,6 +20,7 @@ export default async function DashboardPage() {
 
   const firstName = user.firstName ?? '';
   const email = user.emailAddresses[0]?.emailAddress ?? '';
+  const plan = ((user.publicMetadata?.plan as string) ?? 'free').toLowerCase();
 
   const [recentAudits, stats] = await Promise.all([
     getUserAudits(user.id, 3),
@@ -142,7 +143,7 @@ export default async function DashboardPage() {
           >
             {[
               { label: 'Audits run', value: String(stats.count), note: stats.count > 0 ? 'total audits' : 'no audits yet' },
-              { label: 'Current plan', value: 'Free', note: 'Upgrade →' },
+              { label: 'Current plan', value: plan === 'pro' || plan === 'full' ? plan.charAt(0).toUpperCase() + plan.slice(1) : 'Free', note: plan === 'free' ? 'Upgrade →' : 'Active' },
               { label: 'Avg. score', value: stats.avgScore !== null ? String(stats.avgScore) : '—', note: stats.avgScore !== null ? 'out of 100' : 'No data yet' },
             ].map(({ label, value, note }) => (
               <div

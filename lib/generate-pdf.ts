@@ -1,79 +1,317 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Branded RoastLab PDF report — opens a styled HTML page and triggers print.
- * Browser-only. Inline CSS @media print gives professional output.
+ * RoastLab PDF report — uses jsPDF for a real .pdf download (no browser print dialog).
+ * Dynamic import keeps jsPDF out of the main bundle.
  */
 
-const SEV_COLOR: Record<string, string> = { critical:'#E8334A', high:'#FF9F0A', medium:'#FFD60A', good:'#30D158' };
-const SEV_LABEL: Record<string, string> = { critical:'💀 CRITICAL', high:'🔥 HIGH', medium:'😬 MEDIUM', good:'✅ GOOD' };
+const SEV_COLOR: Record<string, [number, number, number]> = {
+  critical: [232, 51, 74],
+  high:     [255, 159, 10],
+  medium:   [255, 214, 10],
+  good:     [48,  209, 88],
+};
+const SEV_LABEL: Record<string, string> = {
+  critical: "CRITICAL",
+  high:     "HIGH",
+  medium:   "MEDIUM",
+  good:     "GOOD",
+};
 const DIM_LABELS: Record<string, string> = {
-  visual_design:'Visual Design', copywriting:'Copywriting', cta:'CTA',
-  ux_flow:'UX Flow', accessibility:'Accessibility', trust_signals:'Trust Signals',
-  mobile_experience:'Mobile Experience', performance:'Performance', seo:'SEO',
+  visual_design:     "Visual Design",
+  copywriting:       "Copywriting",
+  cta:               "CTA",
+  ux_flow:           "UX Flow",
+  accessibility:     "Accessibility",
+  trust_signals:     "Trust Signals",
+  mobile_experience: "Mobile Experience",
+  performance:       "Performance",
+  seo:               "SEO",
 };
 
-const esc = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const sc = (n: number) => n >= 70 ? '#30D158' : n >= 45 ? '#FF9F0A' : '#E8334A';
-const sl = (n: number) => n >= 75 ? 'Good' : n >= 50 ? 'Needs Work' : n >= 30 ? 'Bad' : 'Critical';
+function scoreColor(score: number): [number, number, number] {
+  if (score >= 70) return [48, 209, 88];
+  if (score >= 45) return [255, 159, 10];
+  return [232, 51, 74];
+}
 
-const LOGO_SVG = `<svg width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" stroke="#E8334A" stroke-width="1.5"/><circle cx="16" cy="16" r="7" stroke="#E8334A" stroke-width="1.5"/><circle cx="16" cy="16" r="2" fill="#E8334A"/><line x1="16" y1="2" x2="16" y2="8" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="24" x2="16" y2="30" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="16" x2="8" y2="16" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/><line x1="24" y1="16" x2="30" y2="16" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+function scoreLabel(score: number): string {
+  if (score >= 75) return "GOOD";
+  if (score >= 50) return "NEEDS WORK";
+  if (score >= 30) return "BAD";
+  return "CRITICAL";
+}
 
-const CSS = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111;font-size:12px;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{min-height:100vh;display:flex;flex-direction:column;padding:52px 48px 36px;background:#09090B;color:#FAFAFA;page-break-after:always;break-after:page;border-top:3px solid #E8334A}.lr{display:flex;align-items:center;gap:12px;margin-bottom:56px}.lt{font-size:20px;font-weight:900;letter-spacing:-.04em}.ltag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#8B8BA3}.cm{flex:1;display:flex;align-items:center;gap:40px}.ct{flex:1}.clabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#E8334A;margin-bottom:14px}.ctitle{font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1.1;margin-bottom:14px;word-break:break-all}.cmeta{font-size:11px;color:#8B8BA3;line-height:1.8}.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:20px}.pill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid}.sring{width:120px;height:120px;border-radius:50%;border:3px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}.snum{font-size:44px;font-weight:900;line-height:1;letter-spacing:-.04em}.sdenom{font-size:10px;color:#8B8BA3;margin-top:2px}.slabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:3px}.cfoot{margin-top:36px;padding-top:16px;border-top:1px solid #1E1E28;font-size:9px;color:#4A4A62;display:flex;justify-content:space-between}.content{padding:44px 48px}.ph{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;margin-bottom:24px;border-bottom:1px solid #E5E5E5}.plogo{font-size:13px;font-weight:900;letter-spacing:-.03em;display:flex;align-items:center;gap:7px}.pdot{width:7px;height:7px;border-radius:50%;background:#E8334A}.pmeta{font-size:9px;color:#8B8BA3;text-align:right;line-height:1.6}.dc{margin-bottom:24px;padding:18px 18px 18px 22px;border-radius:8px;background:#FAFAFA;page-break-inside:avoid;break-inside:avoid}.dh{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}.dh>div:first-child{flex:1}.dn{font-size:13px;font-weight:800;color:#09090B;letter-spacing:-.02em;margin-bottom:4px}.ds{font-size:10px;color:#555;line-height:1.6;font-style:italic}.dsc{width:48px;height:48px;border-radius:50%;border:2px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0;letter-spacing:-.04em}.dsd{font-size:7px;font-weight:400;opacity:.6}.finds{display:flex;flex-direction:column;gap:8px}.fi{padding:9px 11px;background:#fff;border-radius:5px;border:1px solid #E5E5E5;page-break-inside:avoid;break-inside:avoid}.fih{display:flex;align-items:flex-start;gap:7px;margin-bottom:4px;flex-wrap:wrap}.sb{font-size:7px;font-weight:700;padding:2px 6px;border-radius:99px;white-space:nowrap;flex-shrink:0;margin-top:1px}.ft{font-size:10px;font-weight:700;color:#09090B;line-height:1.4}.fq{font-size:9px;color:#666;font-style:italic;margin:4px 0;padding:4px 8px;background:#F5F5F5;border-radius:3px;border-left:2px solid #E5E5E5}.fx{font-size:9px;color:#444;line-height:1.5;margin-top:3px}.pf{margin-top:28px;padding-top:12px;border-top:1px solid #E5E5E5;font-size:8px;color:#AAAAAA;display:flex;justify-content:space-between}@media print{@page{margin:0;size:A4}body{font-size:10px}.cover{padding:44px 40px 28px}.content{padding:36px 40px}.prbtn{display:none!important}}@media screen{body{max-width:800px;margin:0 auto}.prbtn{position:fixed;bottom:20px;right:20px;padding:11px 22px;background:#E8334A;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(232,51,74,.4);z-index:999}}`;
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+}
 
-export function generateRoastPDF(opts: { url: string; score: number; dims: any[] }): void {
-  if (typeof window === 'undefined') return;
+export async function generateRoastPDF(opts: { url: string; score: number; dims: any[] }): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const { jsPDF } = await import("jspdf");
 
   const { url, score, dims } = opts;
-  const date = new Date().toLocaleDateString('en-IN', { year:'numeric', month:'long', day:'numeric' });
-  const scolor = sc(score);
+  const date = new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
+  const scolor = scoreColor(score);
 
-  const dimsHtml = dims.map((d: any) => {
-    const label = DIM_LABELS[d.dimension] ?? d.dimension;
-    const dc = sc(d.score);
-    const findings = (d.findings ?? []).map((f: any) => {
-      const fc = SEV_COLOR[f.severity] ?? '#888';
-      return `<div class="fi"><div class="fih"><span class="sb" style="background:${fc}22;color:${fc};border:1px solid ${fc}44">${SEV_LABEL[f.severity]??f.severity.toUpperCase()}</span><span class="ft">${esc(f.title??'')}</span></div>${f.quote?`<div class="fq">"${esc(f.quote)}"</div>`:''}<div class="fx"><strong style="color:${fc}">Fix →</strong> ${esc(f.action??'')}</div></div>`;
-    }).join('');
-    return `<div class="dc" style="border-left:3px solid ${dc}"><div class="dh"><div><div class="dn">${label}</div><div class="ds">${esc(d.summary??'')}</div></div><div class="dsc" style="color:${dc};border-color:${dc};background:${dc}1A">${d.score}<span class="dsd">/100</span></div></div><div class="finds">${findings}</div></div>`;
-  }).join('');
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const W = 210;
+  const MARGIN = 18;
+  const CONTENT_W = W - MARGIN * 2;
 
-  const pillsHtml = dims.map((d: any) => {
-    const dc = sc(d.score); const label = DIM_LABELS[d.dimension]??d.dimension;
-    return `<span class="pill" style="color:${dc};border-color:${dc}44;background:${dc}11">${label} ${d.score}</span>`;
-  }).join('');
+  /* ── helpers ─────────────────────────────────────────── */
+  function setColor(rgb: [number, number, number]) {
+    doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+  }
+  function setFillColor(rgb: [number, number, number], alpha = 1) {
+    if (alpha < 1) {
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    } else {
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    }
+  }
+  function newPageIfNeeded(y: number, needed = 20): number {
+    if (y + needed > 275) {
+      doc.addPage();
+      return 18;
+    }
+    return y;
+  }
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>RoastLab Audit — ${esc(url)}</title><style>${CSS}</style></head><body>
-<div class="cover">
-  <div class="lr">${LOGO_SVG}<div><div class="lt">ROASTLAB</div><div class="ltag">Website Audit Report</div></div></div>
-  <div class="cm">
-    <div class="ct">
-      <div class="clabel">Full Audit Report</div>
-      <div class="ctitle">${esc(url)}</div>
-      <div class="cmeta">Generated: ${date}<br/>Dimensions: ${dims.length}<br/>Score: ${score}/100 — ${sl(score)}</div>
-      <div class="pills">${pillsHtml}</div>
-    </div>
-    <div class="sring" style="border-color:${scolor};background:${scolor}11">
-      <div class="snum" style="color:${scolor}">${score}</div>
-      <div class="sdenom">/100</div>
-      <div class="slabel" style="color:${scolor}">${sl(score)}</div>
-    </div>
-  </div>
-  <div class="cfoot"><span>getroastlab.vercel.app</span><span>Built by Ritesh Bonthalakoti · Confidential</span></div>
-</div>
-<div class="content">
-  <div class="ph">
-    <div class="plogo"><div class="pdot"></div>ROASTLAB</div>
-    <div class="pmeta">${esc(url.length>50?url.slice(0,50)+'…':url)}<br/>${date}</div>
-  </div>
-  ${dimsHtml}
-  <div class="pf"><span>RoastLab · getroastlab.vercel.app</span><span>Built by Ritesh Bonthalakoti · © 2026 RoastLab</span></div>
-</div>
-<button class="prbtn" onclick="window.print()">⬇ Save as PDF</button>
-<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},500)});<\/script>
-</body></html>`;
+  /* ── COVER PAGE ──────────────────────────────────────── */
+  // Background
+  doc.setFillColor(9, 9, 11);
+  doc.rect(0, 0, W, 297, "F");
 
-  const win = window.open('', '_blank');
-  if (!win) { alert('Allow popups to download the PDF report.'); return; }
-  win.document.write(html);
-  win.document.close();
+  // Red top bar
+  doc.setFillColor(232, 51, 74);
+  doc.rect(0, 0, W, 1.5, "F");
+
+  // Logo wordmark
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(250, 250, 250);
+  doc.text("ROAST", MARGIN, 24);
+  doc.setTextColor(232, 51, 74);
+  doc.text("LAB", MARGIN + 28, 24);
+
+  doc.setFontSize(8);
+  doc.setTextColor(139, 139, 163);
+  doc.setFont("helvetica", "normal");
+  doc.text("Website Audit Report", MARGIN, 30);
+
+  // Score ring (simulated with circles)
+  const cx = W - MARGIN - 22;
+  const cy = 85;
+
+  doc.setDrawColor(scolor[0], scolor[1], scolor[2]);
+  doc.setLineWidth(2);
+  doc.circle(cx, cy, 18, "S");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  setColor(scolor);
+  const scoreStr = String(score);
+  const scoreW = doc.getTextWidth(scoreStr);
+  doc.text(scoreStr, cx - scoreW / 2, cy + 3);
+
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(139, 139, 163);
+  doc.text("/100", cx - 4, cy + 8);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  setColor(scolor);
+  const sl = scoreLabel(score);
+  const slW = doc.getTextWidth(sl);
+  doc.text(sl, cx - slW / 2, cy + 14);
+
+  // URL
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(232, 51, 74);
+  doc.text("FULL AUDIT REPORT", MARGIN, 55);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(240, 239, 248);
+  const urlLines = doc.splitTextToSize(truncate(url, 80), CONTENT_W - 50);
+  doc.text(urlLines, MARGIN, 65);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(139, 139, 163);
+  doc.text(`Generated: ${date}`, MARGIN, 78);
+  doc.text(`Dimensions: ${dims.length}`, MARGIN, 83);
+
+  // Dimension pills row
+  let px = MARGIN;
+  const py = 96;
+  dims.forEach((d: any) => {
+    const dc = scoreColor(d.score);
+    const label = (DIM_LABELS[d.dimension] ?? d.dimension).slice(0, 12) + " " + d.score;
+    const lw = doc.getTextWidth(label) + 6;
+    if (px + lw > W - MARGIN) return;
+
+    doc.setFillColor(dc[0], dc[1], dc[2]);
+    doc.setGState({ opacity: 0.08 } as any);
+    doc.roundedRect(px, py - 4, lw, 7, 1, 1, "F");
+    doc.setGState({ opacity: 1 } as any);
+
+    doc.setDrawColor(dc[0], dc[1], dc[2]);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(px, py - 4, lw, 7, 1, 1, "S");
+
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    setColor(dc);
+    doc.text(label, px + 3, py + 1.2);
+    px += lw + 4;
+  });
+
+  // Footer
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(74, 74, 98);
+  doc.text("getroastlab.vercel.app", MARGIN, 285);
+  doc.text("Built by Ritesh Bonthalakoti · Confidential", W - MARGIN - doc.getTextWidth("Built by Ritesh Bonthalakoti · Confidential"), 285);
+  doc.setDrawColor(30, 30, 40);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, 278, W - MARGIN, 278);
+
+  /* ── CONTENT PAGES ───────────────────────────────────── */
+  doc.addPage();
+  doc.setFillColor(9, 9, 11);
+  doc.rect(0, 0, W, 297, "F");
+
+  // Page header
+  doc.setFillColor(232, 51, 74);
+  doc.circle(MARGIN + 2, 16, 2, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(250, 250, 250);
+  doc.text("ROASTLAB", MARGIN + 7, 18);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(139, 139, 163);
+  doc.text(truncate(url, 55), W - MARGIN - doc.getTextWidth(truncate(url, 55)), 15);
+  doc.text(date, W - MARGIN - doc.getTextWidth(date), 20);
+
+  doc.setDrawColor(30, 30, 40);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, 23, W - MARGIN, 23);
+
+  let y = 32;
+
+  dims.forEach((d: any, di: number) => {
+    const dc = scoreColor(d.score);
+    const dimLabel = DIM_LABELS[d.dimension] ?? d.dimension;
+    const findings: any[] = d.findings ?? [];
+
+    // Estimate height needed
+    const summaryLines = doc.splitTextToSize(d.summary ?? "", CONTENT_W - 55);
+    const cardHeight = 12 + summaryLines.length * 4.5 + findings.length * 18 + 8;
+
+    y = newPageIfNeeded(y, cardHeight);
+
+    // Add new page header if we added a page
+    if (y === 18 && di > 0) {
+      doc.setFillColor(9, 9, 11);
+      doc.rect(0, 0, W, 297, "F");
+      doc.setFillColor(232, 51, 74);
+      doc.circle(MARGIN + 2, 16, 2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(250, 250, 250);
+      doc.text("ROASTLAB", MARGIN + 7, 18);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(139, 139, 163);
+      doc.text(truncate(url, 55), W - MARGIN - doc.getTextWidth(truncate(url, 55)), 15);
+      doc.setDrawColor(30, 30, 40);
+      doc.line(MARGIN, 23, W - MARGIN, 23);
+      y = 32;
+    }
+
+    // Card background
+    doc.setFillColor(17, 17, 23);
+    doc.roundedRect(MARGIN, y, CONTENT_W, cardHeight, 3, 3, "F");
+
+    // Left colored bar
+    doc.setFillColor(dc[0], dc[1], dc[2]);
+    doc.roundedRect(MARGIN, y, 2, cardHeight, 1, 1, "F");
+
+    // Dim name + score
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    setColor(dc);
+    doc.text(dimLabel.toUpperCase(), MARGIN + 6, y + 7);
+
+    // Score badge
+    const scoreX = W - MARGIN - 16;
+    const scoreY = y + 7;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    setColor(dc);
+    doc.text(String(d.score), scoreX, scoreY);
+
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(74, 74, 98);
+    doc.text("/100", scoreX + 6, scoreY);
+
+    // Summary
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    doc.setTextColor(180, 180, 200);
+    doc.text(summaryLines, MARGIN + 6, y + 13);
+
+    let fy = y + 13 + summaryLines.length * 4.5 + 3;
+
+    // Findings
+    findings.forEach((f: any) => {
+      const fc = SEV_COLOR[f.severity] ?? [136, 136, 136];
+
+      // Sev tag
+      doc.setFillColor(fc[0], fc[1], fc[2]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      setColor(fc);
+      doc.text(SEV_LABEL[f.severity] ?? f.severity.toUpperCase(), MARGIN + 6, fy + 3.5);
+
+      // Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(220, 220, 240);
+      const titleLines = doc.splitTextToSize(f.title ?? "", CONTENT_W - 30);
+      doc.text(titleLines, MARGIN + 28, fy + 3.5);
+
+      fy += titleLines.length * 4 + 3;
+
+      // Action
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 100, 130);
+      const actionLines = doc.splitTextToSize("→ " + (f.action ?? ""), CONTENT_W - 12);
+      doc.text(actionLines, MARGIN + 6, fy);
+      fy += actionLines.length * 3.8 + 4;
+    });
+
+    y += cardHeight + 6;
+  });
+
+  // Last page footer
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(74, 74, 98);
+  doc.text("RoastLab · getroastlab.vercel.app", MARGIN, 285);
+  doc.text("© 2026 RoastLab", W - MARGIN - doc.getTextWidth("© 2026 RoastLab"), 285);
+  doc.setDrawColor(30, 30, 40);
+  doc.line(MARGIN, 278, W - MARGIN, 278);
+
+  /* ── SAVE ────────────────────────────────────────────── */
+  const filename = `roastlab-${url.replace(/https?:\/\//, "").replace(/[^a-z0-9]/gi, "-").slice(0, 40)}-${score}.pdf`;
+  doc.save(filename);
 }
