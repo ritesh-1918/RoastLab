@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   title: "RoastLab — Your Landing Page Will Not Survive This",
   description:
     "AI roasts your landing page like a chaotic senior designer at 2am. Get brutally honest feedback across 9 dimensions in ~60s. Free. No signup.",
+  metadataBase: new URL("https://getroastlab.vercel.app"),
+  keywords: ["website audit", "landing page roast", "AI design feedback", "UX audit", "SEO checker", "website review"],
+  authors: [{ name: "Ritesh Bonthalakoti", url: "https://github.com/ritesh-1918" }],
+  creator: "Ritesh Bonthalakoti",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -28,11 +32,14 @@ export const metadata: Metadata = {
     title: "RoastLab — Your Landing Page Will Not Survive This",
     description: "AI roasts your landing page like a chaotic senior designer at 2am. Free. No signup.",
     type: "website",
+    url: "https://getroastlab.vercel.app",
+    siteName: "RoastLab",
   },
   twitter: {
     card: "summary_large_image",
     title: "RoastLab — Your Landing Page Will Not Survive This",
     description: "AI roasts your landing page like a chaotic senior designer at 2am.",
+    creator: "@ritesh_builds",
   },
 };
 
