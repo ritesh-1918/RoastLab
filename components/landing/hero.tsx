@@ -1,12 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Globe, Upload, ArrowRight } from "lucide-react";
 
 export function Hero() {
   const [tab, setTab] = useState<"url" | "screenshot">("url");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const router = useRouter();
+
+  function handleRoast() {
+    if (tab === "url") {
+      const trimmed = url.trim();
+      if (!trimmed) return;
+      const target = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+      router.push(`/analyze?url=${encodeURIComponent(target)}`);
+    }
+  }
 
   return (
     <section
@@ -149,6 +161,7 @@ export function Hero() {
                 placeholder="https://yoursite.com"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRoast()}
                 aria-label="Website URL to audit"
                 className="flex-1 bg-transparent border-none outline-none text-sm py-2.5 placeholder:text-[var(--text-dim)]"
                 style={{
@@ -157,19 +170,20 @@ export function Hero() {
                 }}
               />
               <button
-                className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shrink-0"
+                onClick={handleRoast}
+                disabled={!url.trim()}
+                className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: "var(--ember)",
                   color: "#fff",
                   minHeight: "44px",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "var(--ember-2)";
+                  if (!url.trim()) return;
+                  (e.currentTarget as HTMLButtonElement).style.background = "var(--ember-2)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "var(--ember)";
+                  (e.currentTarget as HTMLButtonElement).style.background = "var(--ember)";
                 }}
               >
                 Roast it <ArrowRight size={14} aria-hidden="true" />
@@ -179,25 +193,40 @@ export function Hero() {
 
           {/* Screenshot drop zone */}
           {tab === "screenshot" && (
-            <div
+            <label
               className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-all"
               style={{
-                borderColor: "var(--border-emph)",
+                borderColor: file ? "var(--ember)" : "var(--border-emph)",
                 color: "var(--text-dim)",
               }}
-              role="button"
               aria-label="Upload screenshot"
-              tabIndex={0}
             >
-              <Upload size={20} aria-hidden="true" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setFile(f);
+                  if (f) {
+                    const fd = new FormData();
+                    fd.append("screenshot", f);
+                    fd.append("tier", "free");
+                    window.location.href = "/analyze?upload=1";
+                    // store file in sessionStorage workaround — handled via URL+file upload form
+                  }
+                }}
+              />
+              <Upload size={20} aria-hidden="true" style={{ color: file ? "var(--ember)" : undefined }} />
               <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                Drop a screenshot or{" "}
-                <span style={{ color: "var(--ember)" }}>browse</span>
+                {file ? file.name : (
+                  <>Drop a screenshot or <span style={{ color: "var(--ember)" }}>browse</span></>
+                )}
               </p>
               <p className="text-xs">
                 Works for Figma mocks, pre-launch pages, competitor audits
               </p>
-            </div>
+            </label>
           )}
         </div>
       </motion.div>

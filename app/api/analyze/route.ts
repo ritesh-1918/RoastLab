@@ -1,32 +1,12 @@
 /**
  * POST /api/analyze
- *
- * Accepts multipart form data:
- *   - screenshot: File  (optional — omit if url provided)
- *   - url: string       (optional — captures screenshot via microlink)
- *   - tier: "free" | "full" (default: "free")
- *
- * Returns: Server-Sent Events stream.
- * Events:
- *   { type: "audit_id", payload: { id: string } }
- *   { type: "dimension", payload: DimensionResult }
- *   { type: "done", payload: { overallScore: number, providerUsed: string, auditId: string } }
- *   { type: "error", payload: { message: string } }
+ * Multipart: screenshot (File) OR url (string) + tier ("free"|"full")
+ * Returns SSE stream — no DB required.
  */
 
 import { NextRequest } from 'next/server';
-import {
-  runAudit,
-  FREE_DIMENSIONS,
-  DIMENSIONS,
-  type DimensionResult,
-} from '@/lib/ai/analyze';
-import {
-  createAudit,
-  saveDimensionResult,
-  updateAuditScore,
-} from '@/lib/db/index';
-import { captureScreenshot, uploadScreenshot } from '@/lib/screenshot';
+import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
+import { captureScreenshot } from '@/lib/screenshot';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -54,7 +34,6 @@ export async function POST(req: NextRequest) {
 
         let imageBase64: string;
         let mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
-        let screenshotUrl: string | undefined;
 
         if (file) {
           const allowed = ['image/jpeg', 'image/png', 'image/webp'];
@@ -71,19 +50,14 @@ export async function POST(req: NextRequest) {
           const bytes = await file.arrayBuffer();
           imageBase64 = Buffer.from(bytes).toString('base64');
           mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
-
-          screenshotUrl = await uploadScreenshot(imageBase64, mimeType);
         } else {
           send({ type: 'status', payload: { message: 'Capturing screenshot…' } });
           const captured = await captureScreenshot(url!);
           imageBase64 = captured.base64;
           mimeType = captured.mimeType;
-
-          screenshotUrl = await uploadScreenshot(imageBase64, mimeType);
         }
 
-        const auditId = await createAudit({ url, screenshot_url: screenshotUrl, tier });
-        send({ type: 'audit_id', payload: { id: auditId } });
+        send({ type: 'status', payload: { message: 'Firing up the roast machine…' } });
 
         const dimensions = tier === 'full' ? [...DIMENSIONS] : [...FREE_DIMENSIONS];
 
@@ -94,24 +68,14 @@ export async function POST(req: NextRequest) {
           url,
           onDimensionComplete: async (dimResult: DimensionResult) => {
             send({ type: 'dimension', payload: dimResult });
-            await saveDimensionResult({
-              audit_id: auditId,
-              dimension: dimResult.dimension,
-              score: dimResult.score,
-              summary: dimResult.summary,
-              findings: dimResult.findings,
-            });
           },
         });
-
-        await updateAuditScore(auditId, result.overallScore, result.providerUsed);
 
         send({
           type: 'done',
           payload: {
             overallScore: result.overallScore,
             providerUsed: result.providerUsed,
-            auditId,
           },
         });
       } catch (err) {
