@@ -58,7 +58,7 @@ export function generateRoastPDF(opts: { url: string; score: number; dims: any[]
       <div class="slabel" style="color:${scolor}">${sl(score)}</div>
     </div>
   </div>
-  <div class="cfoot"><span>getroastlab.vercel.app</span><span>Built by Ritesh Pontalakoti · Confidential</span></div>
+  <div class="cfoot"><span>getroastlab.vercel.app</span><span>Built by Ritesh Bonthalakoti · Confidential</span></div>
 </div>
 <div class="content">
   <div class="ph">
@@ -66,7 +66,7 @@ export function generateRoastPDF(opts: { url: string; score: number; dims: any[]
     <div class="pmeta">${esc(url.length>50?url.slice(0,50)+'…':url)}<br/>${date}</div>
   </div>
   ${dimsHtml}
-  <div class="pf"><span>RoastLab · getroastlab.vercel.app</span><span>Built by Ritesh Pontalakoti · © 2026 RoastLab</span></div>
+  <div class="pf"><span>RoastLab · getroastlab.vercel.app</span><span>Built by Ritesh Bonthalakoti · © 2026 RoastLab</span></div>
 </div>
 <button class="prbtn" onclick="window.print()">⬇ Save as PDF</button>
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print()},500)});<\/script>

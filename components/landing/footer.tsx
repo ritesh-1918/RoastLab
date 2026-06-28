@@ -98,7 +98,7 @@ export function Footer() {
           </p>
           <p style={{ fontSize: 12, color: "#4A4A62", margin: 0 }}>
             Built by{" "}
-            <span style={{ color: "#8B8BA3", fontWeight: 600 }}>Ritesh Pontalakoti</span>
+            <span style={{ color: "#8B8BA3", fontWeight: 600 }}>Ritesh Bonthalakoti</span>
           </p>
         </div>
       </div>
