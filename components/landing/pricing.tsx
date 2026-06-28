@@ -182,11 +182,11 @@ function PlanCard({ plan, index }: { plan: typeof PLANS[0]; index: number }) {
           disabled={loading}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            width: '100%', padding: '12px 16px', borderRadius: 10, border: 'none',
+            width: '100%', padding: '12px 16px', borderRadius: 10,
+            border: plan.id === 'free' ? '1px solid #27273A' : 'none',
             fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', cursor: loading ? 'default' : 'pointer',
             background: plan.highlight ? '#E8334A' : plan.id === 'free' ? 'transparent' : '#1E1E28',
             color: plan.highlight ? '#fff' : plan.id === 'free' ? '#8B8BA3' : '#FAFAFA',
-            border: plan.id === 'free' ? '1px solid #27273A' : 'none',
             transition: 'background 150ms',
           } as React.CSSProperties}
           onMouseEnter={(e) => {
