@@ -5,9 +5,13 @@
  */
 
 import { NextRequest } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
 import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
-import { captureScreenshot, crawlPage } from '@/lib/screenshot';
+import { captureScreenshot, crawlPage, extractSiteData, crawlSubpages } from '@/lib/screenshot';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bonthalamadhavi1@gmail.com')
+  .split(',').map(e => e.trim().toLowerCase());
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -22,11 +26,20 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // Admin detection via Clerk
+        const clerkUser = await currentUser();
+        const userEmail = clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase() ?? '';
+        const isAdmin = ADMIN_EMAILS.includes(userEmail);
+
         const formData = await req.formData();
         const file = formData.get('screenshot') as File | null;
         const url = (formData.get('url') as string | null) ?? undefined;
-        const tier = ((formData.get('tier') as string | null) ?? 'free') as 'free' | 'full';
-        const paid = formData.get('paid') === '1';
+        const rawTier = ((formData.get('tier') as string | null) ?? 'free') as 'free' | 'full';
+        const rawPaid = formData.get('paid') === '1';
+
+        // Admin gets full access always
+        const tier: 'free' | 'full' = isAdmin ? 'full' : rawTier;
+        const paid = isAdmin ? true : rawPaid;
         const rawBase64 = formData.get('imageBase64') as string | null;
         const rawMime = (formData.get('imageMimeType') as string | null) ?? 'image/png';
 
@@ -80,20 +93,43 @@ export async function POST(req: NextRequest) {
           mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
           send({ type: 'status', payload: { message: 'Got your screenshot, loading roast cannon…' } });
         } else {
-          send({ type: 'status', payload: { message: 'Crawling your crime scene…' } });
-          // Screenshot + full page crawl in parallel — zero extra time added
-          const [captured, crawled] = await Promise.all([
-            captureScreenshot(url!),
-            crawlPage(url!),
-          ]);
-          imageBase64 = captured.base64;
-          mimeType = captured.mimeType;
-          pageContent = crawled || undefined;
-          send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
-          const contentMsg = pageContent
-            ? `Crawled ${pageContent.length} chars of content — loading roast cannon…`
-            : 'Screenshot captured — loading roast cannon…';
-          send({ type: 'status', payload: { message: contentMsg } });
+          const isPremium = tier === 'full' || paid;
+
+          if (isPremium) {
+            send({ type: 'status', payload: { message: 'Deep crawl initiated — analyzing every pixel of your crime scene…' } });
+
+            // Full parallel deep crawl: screenshot + main crawl + HTML data + subpages
+            const [captured, mainCrawl, siteData, subpageData] = await Promise.all([
+              captureScreenshot(url!),
+              crawlPage(url!),
+              extractSiteData(url!),
+              crawlSubpages(url!),
+            ]);
+
+            imageBase64 = captured.base64;
+            mimeType = captured.mimeType;
+            send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
+
+            const parts = [mainCrawl, siteData, subpageData].filter(p => p && p.length > 50);
+            pageContent = parts.join('\n\n---\n\n') || undefined;
+
+            const totalChars = parts.reduce((s, p) => s + p.length, 0);
+            send({ type: 'status', payload: { message: `Deep crawl complete — ${totalChars.toLocaleString()} chars analyzed across ${parts.length} data sources. Unleashing all 9 roast dimensions…` } });
+          } else {
+            send({ type: 'status', payload: { message: 'Crawling your crime scene…' } });
+            const [captured, crawled] = await Promise.all([
+              captureScreenshot(url!),
+              crawlPage(url!),
+            ]);
+            imageBase64 = captured.base64;
+            mimeType = captured.mimeType;
+            pageContent = crawled || undefined;
+            send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
+            const contentMsg = pageContent
+              ? `Crawled ${pageContent.length} chars of content — loading roast cannon…`
+              : 'Screenshot captured — loading roast cannon…';
+            send({ type: 'status', payload: { message: contentMsg } });
+          }
         }
 
         const dimensions = tier === 'full' ? [...DIMENSIONS] : [...FREE_DIMENSIONS];

@@ -5,7 +5,9 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Lock, ExternalLink, CreditCard, Loader2, Flame, Download } from "lucide-react";
-import { useAuth, useClerk } from "@clerk/nextjs";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+
+const ADMIN_EMAILS = ['bonthalamadhavi1@gmail.com'];
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 type Severity = "critical" | "high" | "medium" | "good";
@@ -442,6 +444,9 @@ function AnalyzeContent() {
   const upload = searchParams.get("upload") === "1";
 
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const isAdmin = user?.emailAddresses.some(e => ADMIN_EMAILS.includes(e.emailAddress)) ?? false;
+  const effectiveTier = isAdmin ? 'full' : tier;
 
   const [status, setStatus]   = useState("warming up the roast machine…");
   const [dims, setDims]       = useState<DimensionResult[]>([]);
@@ -553,7 +558,7 @@ function AnalyzeContent() {
     </div>
   );
 
-  const pendingDims = tier === "full"
+  const pendingDims = effectiveTier === "full"
     ? Object.keys(DIM).filter(d => !dims.find(r => r.dimension === d))
     : FREE_DIMS.filter(d => !dims.find(r => r.dimension === d));
 
@@ -571,9 +576,9 @@ function AnalyzeContent() {
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <Flame size={11} color="#FF2D55"/>
           <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#FF2D55" }}>
-            {tier === "full" && paid ? "full roast" : "free roast"}
+            {effectiveTier === "full" ? "full roast" : "free roast"}
           </span>
-          <span style={{ fontSize: 10, color: "#2E2E4E" }}>· {dims.length}/{tier === "full" ? 9 : 3}</span>
+          <span style={{ fontSize: 10, color: "#2E2E4E" }}>· {dims.length}/{effectiveTier === "full" ? 9 : 3}</span>
         </div>
       </div>
 
@@ -641,8 +646,8 @@ function AnalyzeContent() {
       {dims.map((d, i) => <RoastCard key={d.dimension} result={d} idx={i} />)}
       {!done && !error && pendingDims.map(d => <Skeleton key={d} dimKey={d} />)}
 
-      {/* Locked + upsell */}
-      {done && tier !== "full" && (
+      {/* Locked + upsell — hidden for admin */}
+      {done && effectiveTier !== "full" && (
         <>
           <div style={{ marginTop: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -655,7 +660,7 @@ function AnalyzeContent() {
         </>
       )}
 
-      {done && tier === "full" && (
+      {done && effectiveTier === "full" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
           style={{ marginTop: 16, padding: "14px 18px", borderRadius: 12, background: "rgba(50,215,75,0.04)", border: "1px solid rgba(50,215,75,0.14)", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>🏆</span>
