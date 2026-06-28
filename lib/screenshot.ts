@@ -1,8 +1,10 @@
 /**
- * Free screenshot capture via microlink.io
- * Free tier: 100 req/day, no API key needed.
- * Returns base64-encoded JPEG.
+ * Screenshot utilities:
+ * - captureScreenshot: URL → base64 JPEG via microlink.io (free, 100/day)
+ * - uploadScreenshot: base64 → Vercel Blob → public URL
  */
+
+import { put } from '@vercel/blob';
 
 export async function captureScreenshot(url: string): Promise<{
   base64: string;
@@ -11,7 +13,9 @@ export async function captureScreenshot(url: string): Promise<{
   const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&embed=screenshot.url`;
 
   const res = await fetch(apiUrl, {
-    headers: { 'x-api-key': process.env.MICROLINK_API_KEY ?? '' }, // optional paid key
+    headers: process.env.MICROLINK_API_KEY
+      ? { 'x-api-key': process.env.MICROLINK_API_KEY }
+      : {},
   });
 
   if (!res.ok) {
@@ -28,7 +32,6 @@ export async function captureScreenshot(url: string): Promise<{
     throw new Error('microlink returned no screenshot URL');
   }
 
-  // Download and convert to base64
   const imgRes = await fetch(screenshotUrl);
   if (!imgRes.ok) throw new Error('Failed to download screenshot image');
 
@@ -36,4 +39,20 @@ export async function captureScreenshot(url: string): Promise<{
   const base64 = Buffer.from(buffer).toString('base64');
 
   return { base64, mimeType: 'image/jpeg' };
+}
+
+export async function uploadScreenshot(
+  base64: string,
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
+): Promise<string> {
+  const ext = mimeType.split('/')[1];
+  const filename = `screenshots/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const buffer = Buffer.from(base64, 'base64');
+
+  const blob = await put(filename, buffer, {
+    access: 'public',
+    contentType: mimeType,
+  });
+
+  return blob.url;
 }

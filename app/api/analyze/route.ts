@@ -21,8 +21,12 @@ import {
   DIMENSIONS,
   type DimensionResult,
 } from '@/lib/ai/analyze';
-import { createServerClient } from '@/lib/db/supabase';
-import { captureScreenshot } from '@/lib/screenshot';
+import {
+  createAudit,
+  saveDimensionResult,
+  updateAuditScore,
+} from '@/lib/db/index';
+import { captureScreenshot, uploadScreenshot } from '@/lib/screenshot';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -36,13 +40,11 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       }
 
-      const db = createServerClient();
-
       try {
         const formData = await req.formData();
         const file = formData.get('screenshot') as File | null;
         const url = (formData.get('url') as string | null) ?? undefined;
-        const tier = (formData.get('tier') as string | null) ?? 'free';
+        const tier = ((formData.get('tier') as string | null) ?? 'free') as 'free' | 'full';
 
         if (!file && !url) {
           send({ type: 'error', payload: { message: 'Provide a screenshot or URL.' } });
@@ -52,10 +54,9 @@ export async function POST(req: NextRequest) {
 
         let imageBase64: string;
         let mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
-        let screenshotPath: string | undefined;
+        let screenshotUrl: string | undefined;
 
         if (file) {
-          // Validate type + size
           const allowed = ['image/jpeg', 'image/png', 'image/webp'];
           if (!allowed.includes(file.type)) {
             send({ type: 'error', payload: { message: 'Use JPEG, PNG, or WebP.' } });
@@ -71,52 +72,17 @@ export async function POST(req: NextRequest) {
           imageBase64 = Buffer.from(bytes).toString('base64');
           mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
 
-          // Upload to Supabase Storage
-          const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${mimeType.split('/')[1]}`;
-          const { data: storageData, error: storageErr } = await db.storage
-            .from('screenshots')
-            .upload(filename, Buffer.from(imageBase64, 'base64'), {
-              contentType: mimeType,
-              upsert: false,
-            });
-          if (!storageErr && storageData) screenshotPath = storageData.path;
+          screenshotUrl = await uploadScreenshot(imageBase64, mimeType);
         } else {
-          // Capture via microlink
           send({ type: 'status', payload: { message: 'Capturing screenshot…' } });
           const captured = await captureScreenshot(url!);
           imageBase64 = captured.base64;
           mimeType = captured.mimeType;
 
-          // Upload to Supabase Storage
-          const filename = `url-${Date.now()}.jpg`;
-          const { data: storageData } = await db.storage
-            .from('screenshots')
-            .upload(filename, Buffer.from(imageBase64, 'base64'), {
-              contentType: mimeType,
-              upsert: false,
-            });
-          if (storageData) screenshotPath = storageData.path;
+          screenshotUrl = await uploadScreenshot(imageBase64, mimeType);
         }
 
-        // Create audit record
-        const { data: auditData, error: auditErr } = await db
-          .from('audits')
-          .insert({
-            url,
-            screenshot_path: screenshotPath,
-            tier,
-            paid: tier === 'free', // free audits are auto-unlocked
-          })
-          .select('id')
-          .single();
-
-        if (auditErr || !auditData) {
-          send({ type: 'error', payload: { message: 'Failed to create audit record.' } });
-          controller.close();
-          return;
-        }
-
-        const auditId = auditData.id as string;
+        const auditId = await createAudit({ url, screenshot_url: screenshotUrl, tier });
         send({ type: 'audit_id', payload: { id: auditId } });
 
         const dimensions = tier === 'full' ? [...DIMENSIONS] : [...FREE_DIMENSIONS];
@@ -128,9 +94,7 @@ export async function POST(req: NextRequest) {
           url,
           onDimensionComplete: async (dimResult: DimensionResult) => {
             send({ type: 'dimension', payload: dimResult });
-
-            // Persist each dimension as it completes
-            await db.from('dimension_results').insert({
+            await saveDimensionResult({
               audit_id: auditId,
               dimension: dimResult.dimension,
               score: dimResult.score,
@@ -140,14 +104,7 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Update audit with final score
-        await db
-          .from('audits')
-          .update({
-            overall_score: result.overallScore,
-            provider_used: result.providerUsed,
-          })
-          .eq('id', auditId);
+        await updateAuditScore(auditId, result.overallScore, result.providerUsed);
 
         send({
           type: 'done',

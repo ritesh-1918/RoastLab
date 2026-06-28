@@ -1,13 +1,11 @@
 /**
  * POST /api/stripe/webhook
  * Handles Stripe webhook: marks audit as paid on checkout.session.completed
- * Set webhook URL in Stripe Dashboard: https://yourdomain.com/api/stripe/webhook
- * Event to listen: checkout.session.completed
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createServerClient } from '@/lib/db/supabase';
+import { markAuditPaid } from '@/lib/db/index';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -35,14 +33,7 @@ export async function POST(req: NextRequest) {
     const auditId = session.metadata?.auditId;
 
     if (auditId) {
-      const db = createServerClient();
-
-      // Mark audit as paid and upgrade to full tier
-      await db
-        .from('audits')
-        .update({ paid: true, tier: 'full', stripe_session_id: session.id })
-        .eq('id', auditId);
-
+      await markAuditPaid(auditId, session.id);
       console.log(`[webhook] audit ${auditId} unlocked`);
     }
   }
