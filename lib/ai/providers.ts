@@ -48,6 +48,16 @@ export function getProviders(): Provider[] {
       model: 'llama-3.2-11b-vision-preview',
       supportsVision: true,
     },
+    {
+      // Gemini via OpenAI-compatible endpoint (Google AI Studio key)
+      name: 'gemini-1',
+      client: makeClient(
+        'https://generativelanguage.googleapis.com/v1beta/openai/',
+        process.env.GEMINI_API_KEY ?? ''
+      ),
+      model: 'gemini-2.0-flash',
+      supportsVision: true,
+    },
   ].filter((p) => {
     // Skip providers with missing keys at runtime
     const key = p.client.apiKey;
