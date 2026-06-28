@@ -88,9 +88,12 @@ Most pages deserve 25-50. Be harsh. Real design scores are brutal.
 OUTPUT: Valid JSON only. Zero markdown fences. Zero commentary. Pure JSON.`;
 }
 
-function buildDimensionPrompt(dimension: DimensionKey, url?: string): string {
+function buildDimensionPrompt(dimension: DimensionKey, url?: string, pageContent?: string): string {
   const label = DIMENSION_LABELS[dimension];
   const urlContext = url ? ` The page URL is: ${url}.` : '';
+  const contentBlock = pageContent
+    ? `\n\nACTUAL PAGE CONTENT (scraped from the live site — use this to quote text ACCURATELY, not what you guess from the screenshot):\n\`\`\`\n${pageContent}\n\`\`\``
+    : '';
 
   const dimensionGuide: Record<DimensionKey, string> = {
     visual_design:
@@ -113,7 +116,7 @@ function buildDimensionPrompt(dimension: DimensionKey, url?: string): string {
       'ROAST the SEO situation. Is there an H1? Is it the right H1? Does the page title say something useful or is it literally "Home"? Quote any heading that makes zero SEO sense. Drag the heading hierarchy that goes H1 → H3 → H2 → chaos. Call out anything a search engine would straight up ignore.',
   };
 
-  return `You are ROASTBOT 9000. Look at this landing page screenshot and DESTROY its "${label}" dimension with maximum chaos energy.${urlContext}
+  return `You are ROASTBOT 9000. Look at this landing page screenshot and DESTROY its "${label}" dimension with maximum chaos energy.${urlContext}${contentBlock}
 
 What to roast: ${dimensionGuide[dimension]}
 
@@ -149,7 +152,8 @@ async function analyzeDimension(
   dimension: DimensionKey,
   imageBase64: string,
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp',
-  url?: string
+  url?: string,
+  pageContent?: string,
 ): Promise<DimensionResult> {
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: buildSystemPrompt() },
@@ -165,7 +169,7 @@ async function analyzeDimension(
         },
         {
           type: 'text',
-          text: buildDimensionPrompt(dimension, url),
+          text: buildDimensionPrompt(dimension, url, pageContent),
         },
       ],
     },
@@ -212,6 +216,7 @@ export async function runAudit(params: {
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
   dimensions?: DimensionKey[];
   url?: string;
+  pageContent?: string;
   onDimensionComplete?: (result: DimensionResult, providerUsed?: string) => void;
 }): Promise<AuditResult> {
   const {
@@ -219,6 +224,7 @@ export async function runAudit(params: {
     mimeType,
     dimensions = FREE_DIMENSIONS,
     url,
+    pageContent,
     onDimensionComplete,
   } = params;
 
@@ -228,7 +234,7 @@ export async function runAudit(params: {
   // Analyze dimensions sequentially to avoid hammering rate limits
   for (const dim of dimensions) {
     const { result, providerUsed } = await withFallback((provider) =>
-      analyzeDimension(provider, dim, imageBase64, mimeType, url)
+      analyzeDimension(provider, dim, imageBase64, mimeType, url, pageContent)
     );
     lastProvider = providerUsed;
     results.push(result);

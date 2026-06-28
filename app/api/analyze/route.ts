@@ -6,7 +6,7 @@
 
 import { NextRequest } from 'next/server';
 import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
-import { captureScreenshot } from '@/lib/screenshot';
+import { captureScreenshot, crawlPage } from '@/lib/screenshot';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
         const url = (formData.get('url') as string | null) ?? undefined;
         const tier = ((formData.get('tier') as string | null) ?? 'free') as 'free' | 'full';
         const paid = formData.get('paid') === '1';
-        // base64 path — used when hero uploads screenshot via sessionStorage relay
         const rawBase64 = formData.get('imageBase64') as string | null;
         const rawMime = (formData.get('imageMimeType') as string | null) ?? 'image/png';
 
@@ -57,11 +56,11 @@ export async function POST(req: NextRequest) {
 
         let imageBase64: string;
         let mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
+        let pageContent: string | undefined;
 
         if (rawBase64) {
-          // Uploaded via sessionStorage relay (hero screenshot tab)
           imageBase64 = rawBase64;
-          mimeType = (['image/jpeg','image/png','image/webp'].includes(rawMime)
+          mimeType = (['image/jpeg', 'image/png', 'image/webp'].includes(rawMime)
             ? rawMime : 'image/png') as 'image/jpeg' | 'image/png' | 'image/webp';
           send({ type: 'status', payload: { message: 'Got your screenshot, loading roast cannon…' } });
         } else if (file) {
@@ -79,16 +78,23 @@ export async function POST(req: NextRequest) {
           const bytes = await file.arrayBuffer();
           imageBase64 = Buffer.from(bytes).toString('base64');
           mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
+          send({ type: 'status', payload: { message: 'Got your screenshot, loading roast cannon…' } });
         } else {
-          send({ type: 'status', payload: { message: 'Taking screenshot of your crime scene…' } });
-          const captured = await captureScreenshot(url!);
+          send({ type: 'status', payload: { message: 'Crawling your crime scene…' } });
+          // Screenshot + full page crawl in parallel — zero extra time added
+          const [captured, crawled] = await Promise.all([
+            captureScreenshot(url!),
+            crawlPage(url!),
+          ]);
           imageBase64 = captured.base64;
           mimeType = captured.mimeType;
-          // Send screenshot URL so frontend can display the actual page
+          pageContent = crawled || undefined;
           send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
+          const contentMsg = pageContent
+            ? `Crawled ${pageContent.length} chars of content — loading roast cannon…`
+            : 'Screenshot captured — loading roast cannon…';
+          send({ type: 'status', payload: { message: contentMsg } });
         }
-
-        send({ type: 'status', payload: { message: 'AI loading up the roast cannon…' } });
 
         const dimensions = tier === 'full' ? [...DIMENSIONS] : [...FREE_DIMENSIONS];
 
@@ -98,6 +104,7 @@ export async function POST(req: NextRequest) {
           mimeType,
           dimensions,
           url,
+          pageContent,
           onDimensionComplete: async (dimResult: DimensionResult, providerUsed?: string) => {
             dimCount++;
             send({

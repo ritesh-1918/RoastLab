@@ -42,6 +42,29 @@ export async function captureScreenshot(url: string): Promise<{
   return { base64, mimeType: 'image/jpeg', screenshotUrl };
 }
 
+/**
+ * Crawl a URL with Jina AI Reader — returns clean markdown of the full page.
+ * Free, no API key needed, 15s timeout, fails gracefully.
+ */
+export async function crawlPage(url: string): Promise<string> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers: {
+        Accept: 'text/markdown',
+        'X-Return-Format': 'markdown',
+        'X-Timeout': '12',
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return '';
+    const raw = await res.text();
+    // Trim to ~6000 chars to stay inside AI context window
+    return raw.slice(0, 6000);
+  } catch {
+    return '';
+  }
+}
+
 export async function uploadScreenshot(
   base64: string,
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
