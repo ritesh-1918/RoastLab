@@ -18,8 +18,10 @@ export const metadata: Metadata = {
     "AI roasts your landing page like a chaotic senior designer at 2am. Get brutally honest feedback across 9 dimensions in ~60s. Free. No signup.",
   icons: {
     icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
+    shortcut: "/icon.svg",
   },
   openGraph: {
     title: "RoastLab — Your Landing Page Will Not Survive This",

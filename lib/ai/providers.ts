@@ -27,13 +27,13 @@ export function getProviders(): Provider[] {
     {
       name: 'openrouter-1',
       client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
-      model: 'google/gemini-flash-1.5',
+      model: 'google/gemini-2.0-flash-exp:free',
       supportsVision: true,
     },
     {
       name: 'openrouter-2',
       client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
-      model: 'google/gemini-flash-1.5',
+      model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
       supportsVision: true,
     },
     {
@@ -65,10 +65,11 @@ export function getProviders(): Provider[] {
   });
 }
 
-/** True when the error is a rate limit or server overload — worth retrying on next provider. */
+/** True when worth trying next provider (rate limit, server error, model not found). */
 export function isRetryableError(err: unknown): boolean {
   if (err instanceof OpenAI.APIError) {
-    return err.status === 429 || err.status >= 500;
+    // 404 = model not found on this provider, 429 = rate limit, 5xx = server error
+    return err.status === 404 || err.status === 429 || err.status >= 500;
   }
   return false;
 }

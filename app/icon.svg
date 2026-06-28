@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#0B0B12"/>
+  <!-- Flame -->
+  <path d="M16 4 C16 4 21 9 21 14 C21 17 19.5 18.5 18 19 C19 16 17 13 17 13 C17 13 15 16 15 19 C13.5 18.5 11 17 11 14 C11 9 16 4 16 4Z" fill="#FF4D1C"/>
+  <path d="M16 12 C16 12 18.5 15 18.5 18 C18.5 19.5 17.5 20.5 16 21 C14.5 20.5 13.5 19.5 13.5 18 C13.5 15 16 12 16 12Z" fill="#FF8A50"/>
+  <path d="M16 16 C16 16 17 18 17 19.5 C17 20.5 16.6 21 16 21.5 C15.4 21 15 20.5 15 19.5 C15 18 16 16 16 16Z" fill="#FFD60A"/>
+  <!-- RL text -->
+  <text x="5" y="30" font-family="monospace" font-size="9" font-weight="900" fill="#FF4D1C" letter-spacing="-0.5">RL</text>
+</svg>
