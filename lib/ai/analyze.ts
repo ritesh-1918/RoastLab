@@ -120,7 +120,12 @@ Return this exact JSON structure:
   ]
 }
 
-Include 3–5 findings. At least 2 must quote actual text or describe specific elements visible on THIS page. Make the titles punchy and savage. Make the summary a one-sentence verdict that stings.`;
+Include 3–5 findings. Rules:
+- At least 2 MUST quote actual visible text/elements from THIS specific page
+- "title" = short punchy roast title, internet-humor energy, NOT a formal label. Think tweet, not report.
+- "summary" = one sentence, chaotic energy, like you're texting a friend about how bad this page is. NOT "This landing page's X is Y." Make it unhinged.
+- "action" = real advice but with personality — not dry, not corporate
+- Vary your vocabulary — don't start every title with "The"`;
 }
 
 // ─── Single dimension analysis ────────────────────────────────────────────────
@@ -155,8 +160,8 @@ async function analyzeDimension(
   const response = await provider.client.chat.completions.create({
     model: provider.model,
     messages,
-    max_tokens: 800,
-    temperature: 0.3,
+    max_tokens: 1000,
+    temperature: 0.85,
   });
 
   const text = response.choices[0]?.message?.content ?? '';

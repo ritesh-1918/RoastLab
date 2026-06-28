@@ -308,7 +308,13 @@ function AnalyzeContent() {
               <div className="text-2xl font-extrabold" style={{
                 color: overallScore >= 70 ? "var(--sev-good)" : overallScore >= 45 ? "var(--sev-medium)" : "var(--sev-critical)",
               }}>
-                {overallScore >= 70 ? "Actually decent" : overallScore >= 45 ? "Needs serious work" : "This is rough"}
+                {overallScore >= 70
+                  ? "Ok fine, this slaps"
+                  : overallScore >= 55
+                  ? "Mid. Not terrible, not good."
+                  : overallScore >= 35
+                  ? "Babe wake up, new problems just dropped"
+                  : "I deployed at 3am and prayed energy"}
               </div>
               <div className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
                 Across {dimensions.length} dimension{dimensions.length !== 1 ? "s" : ""}
