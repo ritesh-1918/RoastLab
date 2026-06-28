@@ -1,41 +1,48 @@
 /**
  * POST /api/stripe
- * Body: { siteUrl: string }
+ * Body: { plan: 'pro' | 'full', siteUrl?: string }
  * Returns: { url: string } — Stripe Checkout URL
- * On success: redirects to /analyze?url=...&tier=full&paid=1
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const PRICE_PAISE = 249900; // ₹2,499
+
+const PLANS = {
+  pro: {
+    priceId: process.env.STRIPE_PRICE_PRO!,
+    mode: 'subscription' as const,
+  },
+  full: {
+    priceId: process.env.STRIPE_PRICE_FULL!,
+    mode: 'subscription' as const,
+  },
+};
 
 export async function POST(req: NextRequest) {
   try {
-    const { siteUrl } = (await req.json()) as { siteUrl: string };
-    if (!siteUrl) return NextResponse.json({ error: 'siteUrl required' }, { status: 400 });
+    const body = (await req.json()) as { plan: 'pro' | 'full'; siteUrl?: string };
+    const { plan, siteUrl } = body;
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://roastlab-sooty.vercel.app';
-    const encoded = encodeURIComponent(siteUrl);
+    if (!plan || !PLANS[plan]) {
+      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://getroastlab.vercel.app';
+    const { priceId, mode } = PLANS[plan];
+
+    const successPath = siteUrl
+      ? `/analyze?url=${encodeURIComponent(siteUrl)}&tier=${plan}&paid=1`
+      : `/dashboard`;
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      currency: 'inr',
-      line_items: [{
-        price_data: {
-          currency: 'inr',
-          unit_amount: PRICE_PAISE,
-          product_data: {
-            name: '🔥 RoastLab — Full Roast (9 Dimensions)',
-            description: 'Complete AI audit: Visual Design, UX Flow, Copywriting, Accessibility, Trust Signals, CTA, Mobile, Performance, SEO.',
-          },
-        },
-        quantity: 1,
-      }],
-      metadata: { siteUrl },
-      success_url: `${appUrl}/analyze?url=${encoded}&tier=full&paid=1`,
-      cancel_url: `${appUrl}/analyze?url=${encoded}`,
+      mode,
+      line_items: [{ price: priceId, quantity: 1 }],
+      metadata: { plan, ...(siteUrl ? { siteUrl } : {}) },
+      success_url: `${appUrl}${successPath}`,
+      cancel_url: `${appUrl}/#pricing`,
+      allow_promotion_codes: true,
     });
 
     return NextResponse.json({ url: session.url });
