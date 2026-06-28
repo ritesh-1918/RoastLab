@@ -278,7 +278,7 @@ function Finding({ f, i }: { f: Finding; i: number }) {
 }
 
 /* ─── Roast Card ─────────────────────────────────────────────────────────── */
-function RoastCard({ result, idx }: { result: DimensionResult; idx: number }) {
+function RoastCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
   const [open, setOpen] = useState(true);
   const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
   const sm = scoreMeta(result.score);
@@ -288,15 +288,23 @@ function RoastCard({ result, idx }: { result: DimensionResult; idx: number }) {
       initial={{ opacity: 0, y: 32 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, delay: idx * 0.12, ease: [0.16,1,0.3,1] }}
-      style={{ marginBottom: 16 }}
+      style={{ marginBottom: isWorst ? 24 : 16 }}
     >
+      {isWorst && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#FF2D55", padding: "3px 10px", borderRadius: 6, background: "#FF2D5515", border: "1px solid #FF2D5530" }}>
+            ☠️ biggest L — this is the problem
+          </span>
+        </div>
+      )}
       {/* Card */}
       <div style={{
         borderRadius: 18,
-        border: "1px solid rgba(255,255,255,0.07)",
+        border: isWorst ? "1px solid #FF2D5540" : "1px solid rgba(255,255,255,0.07)",
         overflow: "hidden",
-        background: "linear-gradient(160deg, #131328 0%, #0C0C1A 100%)",
-        boxShadow: `0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)`,
+        background: isWorst ? "linear-gradient(160deg, #1A0A0F 0%, #100812 100%)" : "linear-gradient(160deg, #131328 0%, #0C0C1A 100%)",
+        boxShadow: isWorst ? `0 4px 32px rgba(255,45,85,0.18), inset 0 1px 0 rgba(255,255,255,0.04)` : `0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)`,
+        transform: isWorst ? "scale(1.01)" : "scale(1)",
       }}>
         {/* Colored top border */}
         <div style={{ height: 2, background: `linear-gradient(90deg, ${meta.color} 0%, ${meta.color}44 100%)` }}/>
@@ -321,7 +329,7 @@ function RoastCard({ result, idx }: { result: DimensionResult; idx: number }) {
             </div>
 
             {/* Summary — BIG roast quote */}
-            <p style={{ margin: 0, fontSize: 14.5, color: "#C8C8E8", lineHeight: 1.55, fontStyle: "italic" }}>
+            <p style={{ margin: 0, fontSize: isWorst ? 17 : 14.5, color: isWorst ? "#F0C0C8" : "#C8C8E8", lineHeight: 1.55, fontStyle: "italic", fontWeight: isWorst ? 600 : 400 }}>
               {result.summary}
             </p>
           </div>
@@ -698,7 +706,11 @@ function AnalyzeContent() {
       )}
 
       {/* Cards */}
-      {dims.map((d, i) => <RoastCard key={d.dimension} result={d} idx={i} />)}
+      {dims.map((d, i) => {
+        const worstScore = Math.min(...dims.map(x => x.score));
+        const isWorst = d.score === worstScore;
+        return <RoastCard key={d.dimension} result={d} idx={i} isWorst={isWorst} />;
+      })}
       {!done && !error && pendingDims.map(d => <Skeleton key={d} dimKey={d} />)}
 
       {/* Locked + upsell — hidden for admin */}
