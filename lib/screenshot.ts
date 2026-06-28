@@ -44,24 +44,42 @@ export async function captureScreenshot(url: string): Promise<{
 
 /**
  * Crawl a URL with Jina AI Reader — returns clean markdown of the full page.
- * Free, no API key needed, 15s timeout, fails gracefully.
+ * Free, no API key, JS-rendered, strips nav/footer noise, fails gracefully.
  */
 export async function crawlPage(url: string): Promise<string> {
-  try {
+  const headers = {
+    'Accept': 'text/markdown',
+    'X-Return-Format': 'markdown',
+    'X-Timeout': '18',
+    'X-Remove-Selector': 'header,nav,footer,#cookie-banner,[class*="cookie"],[id*="cookie"],[class*="nav-"],[id*="nav"],[class*="header"],[class*="footer"],[class*="sidebar"],[class*="menu"]',
+    'X-With-Generated-Alt': 'true',
+    'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)',
+  };
+
+  const attempt = async (): Promise<string> => {
     const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers: {
-        Accept: 'text/markdown',
-        'X-Return-Format': 'markdown',
-        'X-Timeout': '12',
-      },
-      signal: AbortSignal.timeout(15_000),
+      headers,
+      signal: AbortSignal.timeout(22_000),
     });
     if (!res.ok) return '';
     const raw = await res.text();
-    // Trim to ~6000 chars to stay inside AI context window
-    return raw.slice(0, 6000);
+    // Remove Jina metadata header lines before actual content
+    const lines = raw.split('\n');
+    const contentStart = lines.findIndex(l => l.startsWith('#') || (l.trim().length > 80));
+    const content = contentStart > 0 ? lines.slice(contentStart).join('\n') : raw;
+    return content.slice(0, 8000);
+  };
+
+  try {
+    return await attempt();
   } catch {
-    return '';
+    // 1 retry after brief delay
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      return await attempt();
+    } catch {
+      return '';
+    }
   }
 }
 

@@ -4,7 +4,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Lock, ExternalLink, CreditCard, Loader2, Flame } from "lucide-react";
+import { ArrowLeft, Lock, ExternalLink, CreditCard, Loader2, Flame, Download } from "lucide-react";
+import { useAuth, useClerk } from "@clerk/nextjs";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 type Severity = "critical" | "high" | "medium" | "good";
@@ -392,14 +393,55 @@ function Upsell({ siteUrl }: { siteUrl: string }) {
   );
 }
 
+/* ─── Auth gate ─────────────────────────────────────────────────────────── */
+function AuthGate({ onSignIn }: { onSignIn: () => void }) {
+  const { openSignIn } = useClerk();
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16,1,0.3,1] }}
+        style={{ maxWidth: 400, width: "100%", borderRadius: 20, background: "#111117", border: "1px solid rgba(232,51,74,0.25)", padding: "36px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}
+      >
+        <motion.div
+          animate={{ x: ['-100%','100%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #E8334A, transparent)', pointerEvents: 'none' }}
+        />
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🔥</div>
+        <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 900, color: "#FAFAFA", letterSpacing: "-0.02em" }}>
+          Free audit used
+        </h2>
+        <p style={{ margin: "0 0 24px", fontSize: 14, color: "#8B8BA3", lineHeight: 1.6 }}>
+          You've used your 1 free audit. Sign in to get 2 more free audits and keep roasting.
+        </p>
+        <button
+          onClick={() => openSignIn()}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "13px 28px", borderRadius: 12, border: "none",
+            background: "#E8334A", color: "#fff", fontSize: 14, fontWeight: 700,
+            cursor: "pointer", letterSpacing: "-0.01em", width: "100%", justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(232,51,74,0.3)",
+          }}
+        >
+          Sign in to continue
+        </button>
+        <Link href="/" style={{ display: "block", marginTop: 16, fontSize: 12, color: "#4A4A62", textDecoration: "none" }}>
+          ← back to home
+        </Link>
+      </motion.div>
+    </div>
+  );
+}
+
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 function AnalyzeContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url") ?? "";
   const tier = (searchParams.get("tier") ?? "free") as "free" | "full";
   const paid = searchParams.get("paid") === "1";
-
   const upload = searchParams.get("upload") === "1";
+
+  const { isSignedIn, isLoaded } = useAuth();
 
   const [status, setStatus]   = useState("warming up the roast machine…");
   const [dims, setDims]       = useState<DimensionResult[]>([]);
@@ -409,11 +451,24 @@ function AnalyzeContent() {
   const [shot, setShot]       = useState<string | null>(null);
   const [uploadName, setUploadName] = useState<string | null>(null);
   const [taunt, setTaunt]     = useState(0);
+  const [gated, setGated]     = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
+    if (!isLoaded) return;
     if (started.current) return;
     if (!upload && !url) return;
+
+    // Session gate: 1 free audit per session without sign-in
+    if (!isSignedIn && !paid) {
+      const count = parseInt(localStorage.getItem("roastlab_audit_count") ?? "0");
+      if (count >= 1) {
+        setGated(true);
+        return;
+      }
+    }
+
     started.current = true;
 
     const form = new FormData();
@@ -421,7 +476,6 @@ function AnalyzeContent() {
     if (paid) form.append("paid", "1");
 
     if (upload) {
-      // Read base64 from sessionStorage (stored by hero screenshot tab)
       try {
         const raw = sessionStorage.getItem("roastlab_upload");
         if (!raw) { setError("No screenshot found. Please upload again."); return; }
@@ -453,7 +507,13 @@ function AnalyzeContent() {
               if (ev.type === "status")     setStatus(ev.payload.message);
               if (ev.type === "screenshot") setShot(ev.payload.url);
               if (ev.type === "dimension")  setDims(prev => [...prev, ev.payload]);
-              if (ev.type === "done")       { setScore(ev.payload.overallScore); setDone(true); }
+              if (ev.type === "done") {
+                setScore(ev.payload.overallScore);
+                setDone(true);
+                // Increment session audit count
+                const prev = parseInt(localStorage.getItem("roastlab_audit_count") ?? "0");
+                localStorage.setItem("roastlab_audit_count", String(prev + 1));
+              }
               if (ev.type === "error")      setError(ev.payload.message);
             } catch {/**/ }
           }
@@ -461,13 +521,28 @@ function AnalyzeContent() {
       })
       .catch(e => { if (e.name !== "AbortError") setError(e.message); });
     return () => ctrl.abort();
-  }, [url, tier, paid]);
+  }, [url, tier, paid, upload, isLoaded, isSignedIn]);
 
   useEffect(() => {
     if (done || error) return;
     const t = setInterval(() => setTaunt(i => (i + 1) % TAUNTS.length), 2600);
     return () => clearInterval(t);
   }, [done, error]);
+
+  async function handleDownloadPDF() {
+    if (!score) return;
+    setPdfLoading(true);
+    try {
+      const { generateRoastPDF } = await import("@/lib/generate-pdf");
+      await generateRoastPDF({ url: upload ? (uploadName ?? "screenshot") : url, score, dims });
+    } catch (e) {
+      console.error("PDF error:", e);
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
+  if (gated) return <AuthGate onSignIn={() => { setGated(false); }} />;
 
   if (!url && !upload) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -585,6 +660,31 @@ function AnalyzeContent() {
           style={{ marginTop: 16, padding: "14px 18px", borderRadius: 12, background: "rgba(50,215,75,0.04)", border: "1px solid rgba(50,215,75,0.14)", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>🏆</span>
           <span style={{ fontSize: 13, color: "#32D74B", fontWeight: 600 }}>all 9 roasts delivered. the receipts are in. 💀</span>
+        </motion.div>
+      )}
+
+      {/* PDF download — shows when audit is done */}
+      {done && dims.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.4 }}
+          style={{ marginTop: 20 }}
+        >
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              width: "100%", padding: "13px 20px", borderRadius: 12,
+              background: "transparent", border: "1px solid #27273A",
+              color: pdfLoading ? "#4A4A62" : "#8B8BA3", fontSize: 13, fontWeight: 600,
+              cursor: pdfLoading ? "default" : "pointer", letterSpacing: "-0.01em",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { if (!pdfLoading) { (e.currentTarget as HTMLElement).style.borderColor = "#E8334A44"; (e.currentTarget as HTMLElement).style.color = "#FAFAFA"; } }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#27273A"; (e.currentTarget as HTMLElement).style.color = "#8B8BA3"; }}
+          >
+            {pdfLoading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }}/> : <Download size={14}/>}
+            {pdfLoading ? "Generating PDF…" : "Download Report as PDF"}
+          </button>
         </motion.div>
       )}
     </div>
