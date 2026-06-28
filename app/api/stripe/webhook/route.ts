@@ -1,11 +1,11 @@
 /**
  * POST /api/stripe/webhook
- * Handles Stripe webhook: marks audit as paid on checkout.session.completed
+ * Verifies Stripe signature and acks. Payment authorization is handled via
+ * the redirect URL (?tier=full&paid=1) — no DB write needed here.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { markAuditPaid } from '@/lib/db/index';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -30,12 +30,7 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    const auditId = session.metadata?.auditId;
-
-    if (auditId) {
-      await markAuditPaid(auditId, session.id);
-      console.log(`[webhook] audit ${auditId} unlocked`);
-    }
+    console.log('[webhook] checkout.session.completed', session.id, 'siteUrl:', session.metadata?.siteUrl);
   }
 
   return NextResponse.json({ received: true });
