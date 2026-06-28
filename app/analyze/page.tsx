@@ -534,17 +534,13 @@ function AnalyzeContent() {
     return () => clearInterval(t);
   }, [done, error]);
 
-  async function handleDownloadPDF() {
+  function handleDownloadPDF() {
     if (!score) return;
     setPdfLoading(true);
-    try {
-      const { generateRoastPDF } = await import("@/lib/generate-pdf");
-      await generateRoastPDF({ url: upload ? (uploadName ?? "screenshot") : url, score, dims });
-    } catch (e) {
-      console.error("PDF error:", e);
-    } finally {
+    import("@/lib/generate-pdf").then(({ generateRoastPDF }) => {
+      generateRoastPDF({ url: upload ? (uploadName ?? "screenshot") : url, score, dims });
       setPdfLoading(false);
-    }
+    }).catch(() => setPdfLoading(false));
   }
 
   if (gated) return <AuthGate onSignIn={() => { setGated(false); }} />;
