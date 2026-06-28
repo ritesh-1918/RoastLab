@@ -18,7 +18,6 @@ export default async function DashboardPage() {
 
   const firstName = user.firstName ?? '';
   const email = user.emailAddresses[0]?.emailAddress ?? '';
-  const initials = (user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '');
 
   return (
     <div style={{ minHeight: '100vh', background: '#09090B', color: '#FAFAFA', display: 'flex', flexDirection: 'column' }}>
