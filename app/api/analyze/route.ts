@@ -10,6 +10,7 @@ import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/l
 import { captureScreenshot, crawlPage, extractSiteData, crawlSubpages } from '@/lib/screenshot';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { saveAudit } from '@/lib/db';
+import { sendAuditEmail } from '@/lib/email';
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bonthalamadhavi1@gmail.com')
   .split(',').map(e => e.trim().toLowerCase());
@@ -151,8 +152,11 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Persist audit if user is signed in
+        // Persist audit + email if user is signed in
         if (clerkUser) {
+          const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
+          const userName = clerkUser.firstName ?? undefined;
+
           saveAudit({
             userId: clerkUser.id,
             url: url ?? 'screenshot',
@@ -160,6 +164,16 @@ export async function POST(req: NextRequest) {
             tier,
             dimensions: result.dimensions,
           }).catch(() => {/* non-fatal */});
+
+          if (userEmail && url) {
+            sendAuditEmail({
+              to: userEmail,
+              name: userName,
+              url,
+              score: result.overallScore,
+              dims: result.dimensions,
+            }).catch(() => {/* non-fatal */});
+          }
         }
 
         send({
