@@ -1,148 +1,295 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
+import { LayoutDashboard, FileText, User, CreditCard, ExternalLink, ArrowRight } from 'lucide-react';
+
+const NAV = [
+  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Reports', href: '/dashboard/reports', icon: FileText },
+  { label: 'Profile', href: '/dashboard/profile', icon: User },
+  { label: 'Billing', href: '/dashboard/billing', icon: CreditCard },
+];
 
 export default async function DashboardPage() {
   const user = await currentUser();
   if (!user) redirect('/sign-in');
 
+  const firstName = user.firstName ?? '';
+  const email = user.emailAddresses[0]?.emailAddress ?? '';
+  const initials = (user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '');
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)' }}>
-      {/* Navbar */}
-      <header style={{
-        borderBottom: '1px solid var(--border-subtle)',
-        padding: '0 24px',
-        height: 56,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'var(--bg-1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <LogoMark size={24} />
-          <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: '-0.02em' }}>
-            ROAST<span style={{ color: 'var(--ember)' }}>LAB</span>
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 8 }}>/ Dashboard</span>
-        </div>
-        <UserButton />
-      </header>
-
-      <main style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px' }}>
-        {/* Welcome */}
-        <div style={{ marginBottom: 40 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 6 }}>
-            Welcome back{user.firstName ? `, ${user.firstName}` : ''} 👋
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            {user.emailAddresses[0]?.emailAddress}
-          </p>
-        </div>
-
-        {/* Plan info */}
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 16,
-          padding: '24px',
-          marginBottom: 24,
+    <div style={{ minHeight: '100vh', background: '#09090B', color: '#FAFAFA', display: 'flex', flexDirection: 'column' }}>
+      {/* Top bar */}
+      <header
+        style={{
+          borderBottom: '1px solid #1E1E28',
+          padding: '0 24px',
+          height: 60,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ember)', marginBottom: 4 }}>
-              Current Plan
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>Free</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>3 audits remaining</div>
-          </div>
-          <a
-            href="/#pricing"
+          background: '#09090B',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <LogoMark size={24} />
+            <span style={{ fontWeight: 900, fontSize: 14, letterSpacing: '-0.04em', color: '#FAFAFA' }}>
+              ROAST<span style={{ color: '#E8334A' }}>LAB</span>
+            </span>
+          </Link>
+          <span style={{ color: '#27273A', fontSize: 18, fontWeight: 300 }}>/</span>
+          <span style={{ fontSize: 13, color: '#8B8BA3', fontWeight: 500 }}>Dashboard</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link
+            href="/"
             style={{
-              padding: '10px 20px',
-              background: 'var(--ember)',
-              color: '#fff',
-              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
               fontSize: 13,
-              fontWeight: 700,
+              fontWeight: 500,
+              color: '#8B8BA3',
               textDecoration: 'none',
-              letterSpacing: '-0.01em',
+              padding: '6px 10px',
+              borderRadius: 6,
+              border: '1px solid #27273A',
             }}
           >
-            Upgrade Plan →
-          </a>
+            New audit <ExternalLink size={11} />
+          </Link>
+          <UserButton />
         </div>
+      </header>
 
-        {/* Quick actions */}
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 16,
-          padding: '24px',
-          marginBottom: 24,
-        }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, letterSpacing: '-0.01em' }}>
-            New Audit
-          </h2>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <input
-              type="url"
-              placeholder="https://yoursite.com"
+      <div style={{ display: 'flex', flex: 1 }}>
+        {/* Sidebar */}
+        <aside
+          style={{
+            width: 220,
+            borderRight: '1px solid #1E1E28',
+            padding: '24px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            position: 'sticky',
+            top: 60,
+            height: 'calc(100vh - 60px)',
+            overflowY: 'auto',
+            flexShrink: 0,
+          }}
+          className="hidden md:flex"
+        >
+          {NAV.map(({ label, href, icon: Icon }) => {
+            const active = href === '/dashboard';
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontSize: 13,
+                  fontWeight: active ? 600 : 500,
+                  color: active ? '#FAFAFA' : '#8B8BA3',
+                  textDecoration: 'none',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  background: active ? '#16161E' : 'transparent',
+                  border: active ? '1px solid #27273A' : '1px solid transparent',
+                  transition: 'background 150ms, color 150ms',
+                }}
+              >
+                <Icon size={15} style={{ color: active ? '#E8334A' : 'inherit' }} />
+                {label}
+              </Link>
+            );
+          })}
+        </aside>
+
+        {/* Main content */}
+        <main style={{ flex: 1, padding: '32px 32px', maxWidth: 900, overflowY: 'auto' }}>
+          {/* Welcome */}
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', margin: 0, marginBottom: 4 }}>
+              {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
+            </h1>
+            <p style={{ fontSize: 13, color: '#8B8BA3', margin: 0 }}>{email}</p>
+          </div>
+
+          {/* Stats row */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: 16,
+              marginBottom: 32,
+            }}
+          >
+            {[
+              { label: 'Audits run', value: '0', note: 'of 3 free' },
+              { label: 'Current plan', value: 'Free', note: 'Upgrade →' },
+              { label: 'Avg. score', value: '—', note: 'No data yet' },
+            ].map(({ label, value, note }) => (
+              <div
+                key={label}
+                style={{
+                  background: '#111117',
+                  border: '1px solid #1E1E28',
+                  borderRadius: 12,
+                  padding: '20px 20px',
+                }}
+              >
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4A4A62', margin: '0 0 8px' }}>
+                  {label}
+                </p>
+                <p style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', color: '#FAFAFA', margin: 0 }}>{value}</p>
+                <p style={{ fontSize: 12, color: '#52526A', margin: '4px 0 0' }}>{note}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick audit */}
+          <div
+            style={{
+              background: '#111117',
+              border: '1px solid #1E1E28',
+              borderRadius: 16,
+              padding: '24px',
+              marginBottom: 24,
+            }}
+          >
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px', letterSpacing: '-0.02em' }}>
+              Run new audit
+            </h2>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  background: '#09090B',
+                  border: '1px solid #27273A',
+                  borderRadius: 8,
+                  padding: '0 14px',
+                }}
+              >
+                <span style={{ fontSize: 12, color: '#4A4A62', fontFamily: 'var(--font-geist-mono), monospace' }}>https://</span>
+                <input
+                  type="url"
+                  placeholder="yoursite.com"
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 13,
+                    color: '#FAFAFA',
+                    padding: '11px 0',
+                    fontFamily: 'var(--font-geist-mono), monospace',
+                  }}
+                />
+              </div>
+              <Link
+                href="/"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '0 18px',
+                  background: '#E8334A',
+                  color: '#fff',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '-0.01em',
+                  minHeight: 42,
+                }}
+              >
+                Analyze <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Recent reports */}
+          <div
+            style={{
+              background: '#111117',
+              border: '1px solid #1E1E28',
+              borderRadius: 16,
+              padding: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
+                Recent reports
+              </h2>
+              <Link href="/dashboard/reports" style={{ fontSize: 12, color: '#8B8BA3', textDecoration: 'none' }}>
+                View all
+              </Link>
+            </div>
+
+            {/* Empty state */}
+            <div
               style={{
-                flex: 1,
-                background: 'var(--bg-hover)',
-                border: '1px solid var(--border-emph)',
-                borderRadius: 8,
-                padding: '10px 14px',
-                fontSize: 13,
-                color: 'var(--text-primary)',
-                outline: 'none',
-                fontFamily: 'var(--font-geist-mono)',
-              }}
-            />
-            <a
-              href="/"
-              style={{
-                padding: '10px 18px',
-                background: 'var(--ember)',
-                color: '#fff',
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 700,
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
+                border: '1px dashed #27273A',
+                borderRadius: 12,
+                padding: '48px 24px',
+                textAlign: 'center',
               }}
             >
-              Roast it 🔥
-            </a>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 10,
+                  background: '#16161E',
+                  border: '1px solid #27273A',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}
+              >
+                <FileText size={20} style={{ color: '#4A4A62' }} />
+              </div>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#8B8BA3', margin: '0 0 6px' }}>No reports yet</p>
+              <p style={{ fontSize: 12, color: '#4A4A62', margin: '0 0 20px' }}>
+                Run your first audit to see it here
+              </p>
+              <Link
+                href="/"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 18px',
+                  background: '#E8334A',
+                  color: '#fff',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Roast your first page <ArrowRight size={12} />
+              </Link>
+            </div>
           </div>
-        </div>
-
-        {/* Past audits placeholder */}
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 16,
-          padding: '24px',
-        }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, letterSpacing: '-0.01em' }}>
-            Past Audits
-          </h2>
-          <div style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            color: 'var(--text-dim)',
-            fontSize: 13,
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🔥</div>
-            No audits yet. Roast your first site to get started.
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

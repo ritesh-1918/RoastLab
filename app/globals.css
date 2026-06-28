@@ -8,24 +8,24 @@
 /* Dark-mode first. Violet-biased surfaces. Ember-red accent (#FF4D1C).      */
 
 :root {
-  /* Surfaces — violet bias, not neutral grey */
-  --bg:           #080810;
-  --bg-1:         #0F0F1A;
-  --bg-card:      #13131F;
-  --bg-hover:     #1A1A28;
-  --border-subtle:#22213A;   /* more visible than before */
-  --border-emph:  #32305A;   /* clearly visible border */
+  /* Surfaces — precise near-black */
+  --bg:           #09090B;
+  --bg-1:         #111117;
+  --bg-card:      #16161E;
+  --bg-hover:     #1E1E28;
+  --border-subtle:#1E1E28;
+  --border-emph:  #27273A;
 
-  /* Brand accent — ember fire, earned by product name */
-  --ember:        #FF4D1C;
-  --ember-2:      #FF6B3D;
-  --ember-dim:    rgba(255, 77, 28, 0.10);
-  --ember-glow:   rgba(255, 77, 28, 0.25);
+  /* Brand accent — sharp crimson red */
+  --ember:        #E8334A;
+  --ember-2:      #C92B3E;
+  --ember-dim:    rgba(232, 51, 74, 0.10);
+  --ember-glow:   rgba(232, 51, 74, 0.20);
 
-  /* Text — all violet-biased, all WCAG AA compliant */
-  --text-primary:   #F0EFF8;   /* 15.2:1 on --bg */
-  --text-secondary: #B8B7D0;   /* 7.8:1 on --bg — was #8F8EA8 (3.5:1, too low) */
-  --text-dim:       #7E7D9A;   /* 4.6:1 on --bg — was #4E4D68 (2.3:1, illegal) */
+  /* Text */
+  --text-primary:   #FAFAFA;
+  --text-secondary: #8B8BA3;
+  --text-dim:       #4A4A62;
 
   /* Severity semantic colors (separate from brand accent) */
   --sev-critical: #FF4D1C;
@@ -50,25 +50,25 @@
   --dur-slow: 320ms;
 
   /* shadcn semantic mapping — dark-first */
-  --background:   #0B0B12;
-  --foreground:   #EDECF6;
-  --card:         #141420;
-  --card-foreground: #EDECF6;
-  --popover:      #141420;
-  --popover-foreground: #EDECF6;
-  --primary:      #FF4D1C;
+  --background:   #09090B;
+  --foreground:   #FAFAFA;
+  --card:         #111117;
+  --card-foreground: #FAFAFA;
+  --popover:      #111117;
+  --popover-foreground: #FAFAFA;
+  --primary:      #E8334A;
   --primary-foreground: #ffffff;
-  --secondary:    #1C1C2A;
-  --secondary-foreground: #EDECF6;
-  --muted:        #1C1C2A;
-  --muted-foreground: #8F8EA8;
-  --accent:       #FF4D1C;
+  --secondary:    #1E1E28;
+  --secondary-foreground: #FAFAFA;
+  --muted:        #1E1E28;
+  --muted-foreground: #8B8BA3;
+  --accent:       #E8334A;
   --accent-foreground: #ffffff;
-  --destructive:  #FF4D1C;
+  --destructive:  #E8334A;
   --destructive-foreground: #ffffff;
-  --border:       #1E1D2E;
-  --input:        #1C1C2A;
-  --ring:         #FF4D1C;
+  --border:       #1E1E28;
+  --input:        #1E1E28;
+  --ring:         #E8334A;
   --radius:       0.625rem;
 }
 
@@ -128,7 +128,7 @@ html {
     -moz-osx-font-smoothing: grayscale;
   }
   :focus-visible {
-    outline: 2px solid var(--ember);
+    outline: 2px solid #E8334A;
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {

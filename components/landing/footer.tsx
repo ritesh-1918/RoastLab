@@ -1,63 +1,102 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 
-const FOOTER_LINKS = [
-  { label: "Privacy", href: "/privacy" },
-  { label: "Terms", href: "/terms" },
-];
-
 export function Footer() {
   return (
     <footer
-      className="px-5 py-12 border-t"
-      style={{ borderColor: "var(--border-subtle)" }}
+      style={{
+        borderTop: "1px solid #1E1E28",
+        padding: "48px 24px",
+        background: "#09090B",
+      }}
       aria-label="Footer"
     >
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-5 mb-8">
-          <Logo size={22} />
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 32,
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 40,
+          }}
+        >
+          {/* Brand */}
+          <div>
+            <Link href="/" style={{ textDecoration: "none" }}>
+              <Logo size={22} />
+            </Link>
+            <p style={{ fontSize: 13, color: "#4A4A62", marginTop: 12, maxWidth: 260, lineHeight: 1.6 }}>
+              AI-powered landing page audits. Brutal. Honest. Fast.
+            </p>
+          </div>
 
-          <nav className="flex items-center gap-6">
-            {[
-              { label: "How it works", href: "/#how-it-works" },
-              { label: "Pricing", href: "/#pricing" },
-              ...FOOTER_LINKS,
-            ].map(({ label, href }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-xs transition-colors"
-                style={{ color: "var(--text-dim)", textDecoration: "none" }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-secondary)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-dim)";
-                }}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
+          {/* Links */}
+          <div style={{ display: "flex", gap: 48, flexWrap: "wrap" }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#4A4A62", marginBottom: 12 }}>
+                Product
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { label: "How it works", href: "/#how-it-works" },
+                  { label: "Pricing", href: "/#pricing" },
+                ].map(({ label, href }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    style={{ fontSize: 13, color: "#8B8BA3", textDecoration: "none", transition: "color 150ms" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#FAFAFA"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#8B8BA3"; }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#4A4A62", marginBottom: 12 }}>
+                Legal
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { label: "Privacy", href: "/privacy" },
+                  { label: "Terms", href: "/terms" },
+                ].map(({ label, href }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    style={{ fontSize: 13, color: "#8B8BA3", textDecoration: "none", transition: "color 150ms" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#FAFAFA"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#8B8BA3"; }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div
-          className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6 border-t"
-          style={{ borderColor: "var(--border-subtle)" }}
+          style={{
+            borderTop: "1px solid #1E1E28",
+            paddingTop: 24,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 12,
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
-          <p className="text-xs" style={{ color: "var(--text-dim)" }}>
-            © {new Date().getFullYear()} RoastLab. AI-powered landing page audits.
+          <p style={{ fontSize: 12, color: "#4A4A62", margin: 0 }}>
+            © {new Date().getFullYear()} RoastLab. All rights reserved.
           </p>
-          <p className="text-xs" style={{ color: "var(--text-dim)" }}>
-            Built with 🔥 by{" "}
-            <a
-              href="https://gratiantechnologies.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "var(--ember)", textDecoration: "none" }}
-            >
-              Gratian Technologies
-            </a>
+          <p style={{ fontSize: 12, color: "#4A4A62", margin: 0 }}>
+            Built by{" "}
+            <span style={{ color: "#8B8BA3", fontWeight: 600 }}>Ritesh Pontalakoti</span>
           </p>
         </div>
       </div>

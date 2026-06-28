@@ -5,27 +5,16 @@ import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/nextjs';
 
-const NAV_LINKS = [
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'Pricing', href: '#pricing' },
-];
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
 
   useEffect(() => {
-    const check = () => setScrolled(window.scrollY > 16);
+    const check = () => setScrolled(window.scrollY > 8);
+    check();
     window.addEventListener('scroll', check, { passive: true });
     return () => window.removeEventListener('scroll', check);
   }, []);
-
-  function scrollToInput(e: React.MouseEvent) {
-    e.preventDefault();
-    const el = document.getElementById('hero-input');
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => (el as HTMLInputElement | null)?.focus(), 600);
-  }
 
   return (
     <header
@@ -33,83 +22,85 @@ export function Navbar() {
       style={{
         position: 'sticky',
         top: 0,
-        zIndex: 50,
-        borderBottom: `1px solid ${scrolled ? 'var(--border-subtle)' : 'transparent'}`,
-        background: scrolled ? 'rgba(8,8,16,0.82)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(180%)' : 'none',
-        transition: 'border-color 200ms, background 200ms, backdrop-filter 200ms',
-        padding: '0 20px',
+        zIndex: 100,
+        borderBottom: scrolled ? '1px solid #1E1E28' : '1px solid transparent',
+        background: scrolled ? 'rgba(9,9,11,0.92)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(12px)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+        transition: 'border-color 180ms ease, background 180ms ease',
+        padding: '0 24px',
       }}
     >
       <div
         style={{
-          maxWidth: 1120,
+          maxWidth: 1200,
           margin: '0 auto',
-          height: 56,
+          height: 60,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 24,
         }}
       >
-        <Logo size={26} />
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <Logo size={24} />
+        </Link>
 
+        {/* Center nav */}
         <nav
           aria-label="Main navigation"
-          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+          }}
+          className="hidden md:flex"
         >
-          {/* Desktop links — hidden on small screens via inline style trick */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 4,
-              marginRight: 12,
-            }}
-            className="hidden sm:flex"
-          >
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: 'var(--text-dim)',
-                  textDecoration: 'none',
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  transition: 'color 140ms, background 140ms',
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.color = 'var(--text-primary)';
-                  el.style.background = 'var(--bg-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.color = 'var(--text-dim)';
-                  el.style.background = 'transparent';
-                }}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
+          {[
+            { label: 'How it works', href: '#how-it-works' },
+            { label: 'Pricing', href: '#pricing' },
+          ].map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#8B8BA3',
+                textDecoration: 'none',
+                padding: '6px 12px',
+                borderRadius: 6,
+                transition: 'color 150ms',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#FAFAFA'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#8B8BA3'; }}
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
 
-          {isSignedIn ? (
+        {/* Right actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!isLoaded ? (
+            <div style={{ width: 120, height: 36 }} />
+          ) : isSignedIn ? (
             <>
               <Link
                 href="/dashboard"
                 style={{
                   fontSize: 13,
-                  fontWeight: 500,
-                  color: 'var(--text-dim)',
+                  fontWeight: 600,
+                  color: '#8B8BA3',
                   textDecoration: 'none',
-                  padding: '6px 10px',
+                  padding: '6px 12px',
                   borderRadius: 6,
-                  marginRight: 8,
+                  transition: 'color 150ms',
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#FAFAFA'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#8B8BA3'; }}
               >
                 Dashboard
               </Link>
@@ -122,14 +113,16 @@ export function Navbar() {
                   style={{
                     fontSize: 13,
                     fontWeight: 500,
-                    color: 'var(--text-dim)',
+                    color: '#8B8BA3',
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    padding: '6px 10px',
+                    padding: '6px 12px',
                     borderRadius: 6,
-                    marginRight: 4,
+                    transition: 'color 150ms',
                   }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#FAFAFA'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#8B8BA3'; }}
                 >
                   Sign in
                 </button>
@@ -140,20 +133,23 @@ export function Navbar() {
                     fontSize: 13,
                     fontWeight: 700,
                     color: '#fff',
-                    background: 'var(--ember)',
+                    background: '#E8334A',
                     border: 'none',
                     cursor: 'pointer',
-                    padding: '7px 16px',
+                    padding: '8px 18px',
                     borderRadius: 8,
                     letterSpacing: '-0.01em',
+                    transition: 'background 150ms',
                   }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#C92B3E'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#E8334A'; }}
                 >
-                  Get Roasted →
+                  Get started
                 </button>
               </SignUpButton>
             </>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );

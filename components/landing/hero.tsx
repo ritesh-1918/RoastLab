@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Globe, Upload, ArrowRight, Flame } from "lucide-react";
+import { Globe, Upload, ArrowRight, Target } from "lucide-react";
 
 export function Hero() {
   const [tab, setTab] = useState<"url" | "screenshot">("url");
@@ -22,249 +22,327 @@ export function Hero() {
 
   return (
     <section
-      className="relative flex flex-col items-center justify-center min-h-[88vh] px-5 py-20 text-center overflow-hidden"
+      className="relative flex flex-col items-center justify-center px-5 overflow-hidden"
+      style={{ minHeight: "92vh", paddingTop: 80, paddingBottom: 80 }}
       aria-label="Hero"
     >
-      {/* Background radial glow — ember at top */}
+      {/* Grid background */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10"
         style={{
-          background:
-            "radial-gradient(ellipse 70% 50% at 50% -5%, rgba(255,77,28,0.11) 0%, transparent 65%)",
-        }}
-      />
-
-      {/* Subtle dot-grid texture */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
           backgroundImage:
-            "radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
+            "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+          maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%)",
         }}
       />
 
-      {/* Live badge */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-8 px-4 py-1.5 rounded-full border"
-          style={{
-            background: "rgba(255,77,28,0.07)",
-            borderColor: "rgba(255,77,28,0.22)",
-            color: "#FF6B35",
-          }}
-        >
-          <Flame size={11} aria-hidden="true" />
-          AI Landing Page Roaster — Free
-        </div>
-      </motion.div>
+      {/* Red center glow */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: "20%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 600,
+          height: 400,
+          borderRadius: "50%",
+          background: "radial-gradient(ellipse at center, rgba(232,51,74,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
 
-      {/* Headline */}
-      <motion.h1
-        className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.04] text-balance mb-4"
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-        style={{ color: "var(--text-primary)", letterSpacing: "-0.04em" }}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          maxWidth: 860,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+        }}
       >
-        We roast{" "}
-        <span
-          style={{
-            background: "linear-gradient(135deg, #FF3000 0%, #FF6B35 55%, #FFB380 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
+        {/* Status badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          style={{ marginBottom: 32 }}
         >
-          landing pages.
-        </span>
-      </motion.h1>
-
-      {/* Subheadline */}
-      <motion.p
-        className="text-base sm:text-lg max-w-[460px] leading-relaxed mb-10"
-        style={{ color: "var(--text-secondary)" }}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-      >
-        Vision AI tears yours apart across 9 dimensions — design, copy, CTAs,
-        UX, SEO, and more. Brutally honest. No signup.
-      </motion.p>
-
-      {/* Input card */}
-      <motion.div
-        className="w-full max-w-lg"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div
-          className="rounded-2xl border p-1.5"
-          style={{
-            background: "var(--bg-card)",
-            borderColor: "var(--border-emph)",
-            boxShadow:
-              "0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,77,28,0.04) inset",
-          }}
-        >
-          {/* Tabs */}
           <div
-            className="flex rounded-xl p-1 mb-1.5 gap-1"
-            style={{ background: "var(--bg-1)" }}
-            role="tablist"
-            aria-label="Input method"
-          >
-            {[
-              { key: "url" as const, label: "Paste URL", Icon: Globe },
-              { key: "screenshot" as const, label: "Screenshot", Icon: Upload },
-            ].map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                role="tab"
-                aria-selected={tab === key}
-                onClick={() => setTab(key)}
-                className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold py-2 px-3 rounded-lg transition-all"
-                style={{
-                  background: tab === key ? "var(--bg-card)" : "transparent",
-                  color: tab === key ? "var(--text-primary)" : "var(--text-dim)",
-                  boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.35)" : "none",
-                }}
-              >
-                <Icon size={13} aria-hidden="true" />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* URL input */}
-          {tab === "url" && (
-            <div className="flex items-center gap-2 px-1">
-              <Globe
-                size={13}
-                aria-hidden="true"
-                className="shrink-0 ml-2"
-                style={{ color: "var(--text-dim)" }}
-              />
-              <input
-                type="url"
-                id="hero-input"
-                placeholder="https://yoursite.com"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleRoast()}
-                aria-label="Website URL to audit"
-                className="flex-1 bg-transparent border-none outline-none text-sm py-3 placeholder:text-[var(--text-dim)]"
-                style={{
-                  fontFamily: "var(--font-geist-mono), monospace",
-                  color: "var(--text-primary)",
-                }}
-              />
-              <button
-                onClick={handleRoast}
-                disabled={!url.trim()}
-                className="flex items-center gap-1.5 text-sm font-bold px-4 py-2.5 rounded-xl transition-all shrink-0 disabled:opacity-35 disabled:cursor-not-allowed"
-                style={{
-                  background: "var(--ember)",
-                  color: "#fff",
-                  minHeight: "44px",
-                  letterSpacing: "-0.01em",
-                  boxShadow: url.trim() ? "0 2px 12px rgba(255,77,28,0.35)" : "none",
-                }}
-                onMouseEnter={(e) => {
-                  if (!url.trim()) return;
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "var(--ember-2)";
-                }}
-                onMouseLeave={(e) => {
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "var(--ember)";
-                }}
-              >
-                Roast it <ArrowRight size={13} aria-hidden="true" />
-              </button>
-            </div>
-          )}
-
-          {/* Screenshot drop zone */}
-          {tab === "screenshot" && (
-            <label
-              className="flex flex-col items-center justify-center gap-2 py-7 rounded-xl border-2 border-dashed cursor-pointer transition-all"
-              style={{
-                borderColor: file ? "var(--ember)" : "var(--border-emph)",
-                color: "var(--text-dim)",
-              }}
-              aria-label="Upload screenshot"
-            >
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="sr-only"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  setFile(f);
-                  if (f) {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const dataUrl = reader.result as string;
-                      const base64 = dataUrl.split(",")[1];
-                      sessionStorage.setItem(
-                        "roastlab_upload",
-                        JSON.stringify({ base64, mimeType: f.type, name: f.name })
-                      );
-                      router.push("/analyze?upload=1");
-                    };
-                    reader.readAsDataURL(f);
-                  }
-                }}
-              />
-              <Upload size={20} aria-hidden="true" style={{ color: file ? "var(--ember)" : undefined }} />
-              <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                {file ? file.name : (
-                  <>
-                    Drop a screenshot or{" "}
-                    <span style={{ color: "var(--ember)" }}>browse</span>
-                  </>
-                )}
-              </p>
-              <p className="text-xs">Figma mocks, live pages, competitor audits</p>
-            </label>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Social proof chips */}
-      <motion.div
-        className="flex flex-wrap justify-center gap-2 mt-7"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.28 }}
-      >
-        {[
-          "3 free dimensions",
-          "No signup required",
-          "~60s results",
-          "1,200+ pages roasted",
-        ].map((label) => (
-          <span
-            key={label}
-            className="text-xs px-3 py-1 rounded-full border"
             style={{
-              background: "var(--bg-card)",
-              borderColor: "var(--border-subtle)",
-              color: "var(--text-dim)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              color: "#E8334A",
+              padding: "5px 14px",
+              borderRadius: 99,
+              border: "1px solid rgba(232,51,74,0.25)",
+              background: "rgba(232,51,74,0.06)",
             }}
           >
-            {label}
-          </span>
-        ))}
-      </motion.div>
+            <Target size={10} />
+            AI Landing Page Analyzer
+          </div>
+        </motion.div>
+
+        {/* ROASTLAB wordmark — the brand, front and center */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+          style={{ marginBottom: 8 }}
+        >
+          <h1
+            style={{
+              fontSize: "clamp(56px, 12vw, 120px)",
+              fontWeight: 900,
+              letterSpacing: "-0.05em",
+              lineHeight: 0.92,
+              color: "#FAFAFA",
+              margin: 0,
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            }}
+          >
+            ROAST<span style={{ color: "#E8334A" }}>LAB</span>
+          </h1>
+        </motion.div>
+
+        {/* Tagline */}
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
+          style={{
+            fontSize: "clamp(16px, 2.5vw, 20px)",
+            color: "#8B8BA3",
+            maxWidth: 480,
+            lineHeight: 1.55,
+            marginTop: 20,
+            marginBottom: 40,
+          }}
+        >
+          Your landing page doesn&apos;t have a chance. We analyze 9 dimensions —
+          brutally honest, in 60 seconds.
+        </motion.p>
+
+        {/* Input card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          style={{ width: "100%", maxWidth: 520 }}
+        >
+          <div
+            style={{
+              borderRadius: 16,
+              border: "1px solid #27273A",
+              background: "#111117",
+              overflow: "hidden",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(232,51,74,0.06) inset",
+            }}
+          >
+            {/* Tabs */}
+            <div
+              style={{
+                display: "flex",
+                borderBottom: "1px solid #1E1E28",
+              }}
+              role="tablist"
+            >
+              {[
+                { key: "url" as const, label: "URL", Icon: Globe },
+                { key: "screenshot" as const, label: "Screenshot", Icon: Upload },
+              ].map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={tab === key}
+                  onClick={() => setTab(key)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 7,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    padding: "13px 16px",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "background 150ms, color 150ms",
+                    borderBottom: tab === key ? "2px solid #E8334A" : "2px solid transparent",
+                    background: tab === key ? "rgba(232,51,74,0.04)" : "transparent",
+                    color: tab === key ? "#FAFAFA" : "#52526A",
+                  }}
+                >
+                  <Icon size={13} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* URL input */}
+            {tab === "url" && (
+              <div style={{ display: "flex", alignItems: "center", padding: "6px 6px 6px 16px", gap: 8 }}>
+                <Globe size={14} style={{ color: "#52526A", flexShrink: 0 }} />
+                <input
+                  type="url"
+                  id="hero-input"
+                  placeholder="https://yoursite.com"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleRoast()}
+                  aria-label="Website URL to audit"
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    fontSize: 14,
+                    padding: "10px 0",
+                    color: "#FAFAFA",
+                    fontFamily: "var(--font-geist-mono), monospace",
+                  }}
+                />
+                <button
+                  onClick={handleRoast}
+                  disabled={!url.trim()}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    padding: "10px 18px",
+                    borderRadius: 10,
+                    border: "none",
+                    cursor: url.trim() ? "pointer" : "not-allowed",
+                    background: url.trim() ? "#E8334A" : "#27273A",
+                    color: url.trim() ? "#fff" : "#52526A",
+                    transition: "background 150ms",
+                    minHeight: 40,
+                    flexShrink: 0,
+                    letterSpacing: "-0.01em",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!url.trim()) return;
+                    (e.currentTarget as HTMLButtonElement).style.background = "#C92B3E";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!url.trim()) return;
+                    (e.currentTarget as HTMLButtonElement).style.background = "#E8334A";
+                  }}
+                >
+                  Analyze <ArrowRight size={13} />
+                </button>
+              </div>
+            )}
+
+            {/* Screenshot drop zone */}
+            {tab === "screenshot" && (
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                  padding: "36px 24px",
+                  cursor: "pointer",
+                  borderTop: "none",
+                }}
+                aria-label="Upload screenshot"
+              >
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    setFile(f);
+                    if (f) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const dataUrl = reader.result as string;
+                        const base64 = dataUrl.split(",")[1];
+                        sessionStorage.setItem(
+                          "roastlab_upload",
+                          JSON.stringify({ base64, mimeType: f.type, name: f.name })
+                        );
+                        router.push("/analyze?upload=1");
+                      };
+                      reader.readAsDataURL(f);
+                    }
+                  }}
+                />
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    background: file ? "rgba(232,51,74,0.12)" : "#1E1E28",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Upload size={18} style={{ color: file ? "#E8334A" : "#52526A" }} />
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#FAFAFA", margin: 0 }}>
+                    {file ? file.name : "Drop a screenshot or click to browse"}
+                  </p>
+                  <p style={{ fontSize: 12, color: "#52526A", margin: "4px 0 0" }}>
+                    Figma mocks, live pages, competitor audits — JPG, PNG, WebP
+                  </p>
+                </div>
+              </label>
+            )}
+          </div>
+
+          {/* Trust pills */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.35 }}
+            style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 20 }}
+          >
+            {[
+              "3 free dimensions",
+              "No signup required",
+              "~60s results",
+            ].map((label) => (
+              <span
+                key={label}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "#4A4A62",
+                  padding: "4px 12px",
+                  borderRadius: 99,
+                  border: "1px solid #1E1E28",
+                }}
+              >
+                {label}
+              </span>
+            ))}
+          </motion.div>
+        </motion.div>
+      </div>
     </section>
   );
 }
