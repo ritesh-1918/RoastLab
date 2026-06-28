@@ -134,6 +134,55 @@ function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
   );
 }
 
+/* ─── Telugu/Indian meme sticker ─────────────────────────────────────────── */
+function MemeSticker({ score }: { score: number }) {
+  // Contextual memes from memegen.link — free, no API key
+  // Format: https://api.memegen.link/images/{template}/{top}/{bottom}.png
+  function enc(s: string) { return encodeURIComponent(s.replace(/ /g, "_")); }
+
+  let template: string, top: string, bottom: string;
+
+  if (score >= 75) {
+    template = "drake"; top = enc("rejecting bad websites"); bottom = enc("bhai tera site actually fire hai");
+  } else if (score >= 60) {
+    template = "hide-the-pain"; top = enc("website score 62/100"); bottom = enc("괜찮아 괜찮아... nahi theek nahi hai");
+  } else if (score >= 40) {
+    template = "disaster-girl"; top = enc("tera website dekh ke"); bottom = enc("machi ee design chusav aa 💀");
+  } else if (score >= 25) {
+    template = "this-is-fine"; top = enc("website score " + score); bottom = enc("yaar ye kya kar diya tune");
+  } else {
+    template = "facepalm"; top = enc("arey baap re"); bottom = enc("ee site ki design chesindi eppudu 😭");
+  }
+
+  const memeUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85, rotate: -3 }}
+      animate={{ opacity: 1, scale: 1, rotate: -2 }}
+      transition={{ delay: 0.6, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+      style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}
+    >
+      <div style={{ position: "relative", display: "inline-block" }}>
+        {/* Sticker white border effect */}
+        <div style={{ padding: 6, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)", transform: "rotate(-2deg)", display: "inline-block" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={memeUrl}
+            alt="roast meme"
+            style={{ width: 280, height: "auto", borderRadius: 8, display: "block", maxHeight: 220, objectFit: "cover" }}
+            loading="lazy"
+          />
+        </div>
+        {/* Score stamp overlay */}
+        <div style={{ position: "absolute", top: -8, right: -8, width: 36, height: 36, borderRadius: "50%", background: "#E8334A", border: "2px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff" }}>
+          {score}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── BIG verdict hero ───────────────────────────────────────────────────── */
 function VerdictHero({ score, dims }: { score: number; dims: DimensionResult[] }) {
   const m = scoreMeta(score);
@@ -170,6 +219,9 @@ function VerdictHero({ score, dims }: { score: number; dims: DimensionResult[] }
         style={{ margin: "0 0 20px", fontSize: 13, color: "#4A4A6E", fontStyle: "italic" }}>
         {m.vibe}
       </motion.p>
+
+      {/* Meme sticker */}
+      <MemeSticker score={score} />
 
       {/* Dim score pills row */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
