@@ -61,8 +61,8 @@ export async function saveAudit(opts: {
       INSERT INTO audits (user_id, url, score, tier, dimensions)
       VALUES (${opts.userId}, ${opts.url}, ${opts.score}, ${opts.tier}, ${JSON.stringify(opts.dimensions)}::JSONB)
       RETURNING id
-    `;
-    return (rows[0] as { id: string })?.id ?? null;
+    ` as unknown as { id: string }[];
+    return rows[0]?.id ?? null;
   } catch (e) {
     console.error('[db] saveAudit error:', e);
     return null;
@@ -80,8 +80,8 @@ export async function getUserAudits(userId: string, limit = 20): Promise<AuditRo
       WHERE user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT ${limit}
-    `;
-    return rows as AuditRow[];
+    ` as unknown as AuditRow[];
+    return rows;
   } catch (e) {
     console.error('[db] getUserAudits error:', e);
     return [];
@@ -97,8 +97,8 @@ export async function getUserStats(userId: string) {
       SELECT COUNT(*)::INT AS count, ROUND(AVG(score))::INT AS avg_score
       FROM audits
       WHERE user_id = ${userId}
-    `;
-    const r = rows[0] as { count: number; avg_score: number | null };
+    ` as unknown as { count: number; avg_score: number | null }[];
+    const r = rows[0];
     return { count: r.count ?? 0, avgScore: r.avg_score };
   } catch (e) {
     console.error('[db] getUserStats error:', e);
@@ -116,8 +116,8 @@ export async function getAllAudits(limit = 50): Promise<AuditRow[]> {
       FROM audits
       ORDER BY created_at DESC
       LIMIT ${limit}
-    `;
-    return rows as AuditRow[];
+    ` as unknown as AuditRow[];
+    return rows;
   } catch (e) {
     console.error('[db] getAllAudits error:', e);
     return [];
@@ -135,8 +135,8 @@ export async function getGlobalStats() {
         ROUND(AVG(score))::INT AS avg_score,
         COUNT(DISTINCT user_id)::INT AS unique_users
       FROM audits
-    `;
-    const r = rows[0] as { total_audits: number; avg_score: number | null; unique_users: number };
+    ` as unknown as { total_audits: number; avg_score: number | null; unique_users: number }[];
+    const r = rows[0];
     return { totalAudits: r.total_audits ?? 0, avgScore: r.avg_score, uniqueUsers: r.unique_users ?? 0 };
   } catch (e) {
     console.error('[db] getGlobalStats error:', e);
