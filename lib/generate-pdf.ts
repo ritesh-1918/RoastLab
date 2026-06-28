@@ -65,7 +65,11 @@ export async function generateRoastPDF(opts: {
   score: number;
   dims: DimensionResult[];
 }) {
-  const { jsPDF } = await import('jspdf');
+  if (typeof window === 'undefined') return; // browser-only
+  // Dynamic import keeps jsPDF out of server bundle
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const jspdfModule = await import('jspdf');
+  const { jsPDF } = jspdfModule;
   const { url, score, dims } = opts;
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
