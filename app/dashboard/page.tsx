@@ -5,6 +5,7 @@ import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
 import { LayoutDashboard, FileText, User, CreditCard, ExternalLink, ArrowRight } from 'lucide-react';
 import { getUserAudits, getUserStats } from '@/lib/db';
+import { relativeTime, scoreColor } from '@/lib/utils';
 
 const NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -259,14 +260,13 @@ export default async function DashboardPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {recentAudits.map((a) => {
-                  const scoreColor = a.score >= 70 ? '#32D74B' : a.score >= 45 ? '#FFD60A' : '#FF2D55';
-                  const d = new Date(a.created_at);
-                  const ago = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                  const sc = scoreColor(a.score);
+                  const ago = relativeTime(a.created_at);
                   return (
                     <Link key={a.id} href={`/analyze?url=${encodeURIComponent(a.url)}&tier=${a.tier}`}
                       style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 10, background: '#09090B', border: '1px solid #1E1E28', textDecoration: 'none', transition: 'border-color 150ms' }}
                     >
-                      <div style={{ width: 40, height: 40, borderRadius: 8, background: `${scoreColor}15`, border: `1px solid ${scoreColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: scoreColor, flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 8, background: `${sc}15`, border: `1px solid ${sc}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: sc, flexShrink: 0 }}>
                         {a.score}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
