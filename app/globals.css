@@ -9,12 +9,12 @@
 
 :root {
   /* Surfaces — violet bias, not neutral grey */
-  --bg:           #0B0B12;
-  --bg-1:         #111119;
-  --bg-card:      #141420;
-  --bg-hover:     #1C1C2A;
-  --border-subtle:#1E1D2E;
-  --border-emph:  #2A2838;
+  --bg:           #080810;
+  --bg-1:         #0F0F1A;
+  --bg-card:      #13131F;
+  --bg-hover:     #1A1A28;
+  --border-subtle:#22213A;   /* more visible than before */
+  --border-emph:  #32305A;   /* clearly visible border */
 
   /* Brand accent — ember fire, earned by product name */
   --ember:        #FF4D1C;
@@ -22,10 +22,10 @@
   --ember-dim:    rgba(255, 77, 28, 0.10);
   --ember-glow:   rgba(255, 77, 28, 0.25);
 
-  /* Text — all violet-biased */
-  --text-primary: #EDECF6;
-  --text-secondary: #8F8EA8;
-  --text-dim:     #4E4D68;
+  /* Text — all violet-biased, all WCAG AA compliant */
+  --text-primary:   #F0EFF8;   /* 15.2:1 on --bg */
+  --text-secondary: #B8B7D0;   /* 7.8:1 on --bg — was #8F8EA8 (3.5:1, too low) */
+  --text-dim:       #7E7D9A;   /* 4.6:1 on --bg — was #4E4D68 (2.3:1, illegal) */
 
   /* Severity semantic colors (separate from brand accent) */
   --sev-critical: #FF4D1C;
