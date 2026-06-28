@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldCheckIcon, Check, Zap, CreditCard, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheckIcon, Check, Zap, Loader2, Globe, ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 
 const FREE_FEATURES = [
@@ -30,7 +30,7 @@ function FreeCTA() {
   return (
     <button
       onClick={scrollToHero}
-      className="w-full py-3 rounded-xl text-sm font-bold border transition-all"
+      className="w-full py-3 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2"
       style={{
         background: 'transparent',
         borderColor: 'rgba(255,255,255,0.12)',
@@ -38,58 +38,103 @@ function FreeCTA() {
         minHeight: '44px',
       }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.25)';
-        (e.currentTarget as HTMLElement).style.color = '#F0EFF8';
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = 'rgba(255,255,255,0.25)';
+        el.style.color = '#F0EFF8';
+        el.style.background = 'rgba(255,255,255,0.04)';
       }}
       onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)';
-        (e.currentTarget as HTMLElement).style.color = '#9997BC';
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = 'rgba(255,255,255,0.12)';
+        el.style.color = '#9997BC';
+        el.style.background = 'transparent';
       }}
     >
-      Start for free →
+      Start for free <ArrowRight size={14} />
     </button>
   );
 }
 
 function PaidCTA() {
+  const [siteUrl, setSiteUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
-  async function handleClick() {
-    // Scroll to URL input — user needs to enter site URL first
-    // If URL already in sessionStorage/page context we'd use it, else just scroll
-    const heroInput = document.getElementById('hero-input') as HTMLInputElement | null;
-    const heroVal = heroInput?.value?.trim();
-    if (!heroVal) {
-      // No URL entered yet — scroll to hero
-      heroInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => heroInput?.focus(), 600);
+  // Pre-fill from hero input if already typed
+  useEffect(() => {
+    const el = document.getElementById('hero-input') as HTMLInputElement | null;
+    if (el?.value?.trim()) setSiteUrl(el.value.trim());
+  }, []);
+
+  async function handlePay() {
+    const trimmed = siteUrl.trim();
+    if (!trimmed) {
+      setErr('Enter your site URL above to continue');
       return;
     }
-    const siteUrl = heroVal.startsWith('http') ? heroVal : `https://${heroVal}`;
-    setLoading(true); setErr('');
+    const url = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    setLoading(true);
+    setErr('');
     try {
       const res = await fetch('/api/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteUrl }),
+        body: JSON.stringify({ siteUrl: url }),
       });
       const data = await res.json() as { url?: string; error?: string };
-      if (data.url) window.location.href = data.url;
-      else { setErr(data.error ?? 'Payment failed'); setLoading(false); }
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setErr(data.error ?? 'Payment failed');
+        setLoading(false);
+      }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'error'); setLoading(false);
+      setErr(e instanceof Error ? e.message : 'Error');
+      setLoading(false);
     }
   }
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Inline URL input */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 10,
+          padding: '4px 4px 4px 10px',
+        }}
+      >
+        <Globe size={13} style={{ color: '#7E7D9A', flexShrink: 0 }} />
+        <input
+          type="url"
+          placeholder="https://yoursite.com"
+          value={siteUrl}
+          onChange={e => { setSiteUrl(e.target.value); setErr(''); }}
+          onKeyDown={e => e.key === 'Enter' && handlePay()}
+          disabled={loading}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            fontSize: 12,
+            color: '#F0EFF8',
+            fontFamily: 'var(--font-geist-mono), monospace',
+          }}
+        />
+      </div>
+
+      {/* Pay button */}
       <motion.button
-        onClick={handleClick}
+        onClick={handlePay}
         disabled={loading}
         whileHover={loading ? {} : { scale: 1.02, y: -1 }}
         whileTap={loading ? {} : { scale: 0.98 }}
-        className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+        className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
         style={{
           background: loading ? '#2A1810' : 'linear-gradient(135deg, #FF4D1C 0%, #FF6B3D 100%)',
           color: loading ? '#7E4D38' : '#fff',
@@ -97,17 +142,21 @@ function PaidCTA() {
           cursor: loading ? 'default' : 'pointer',
           minHeight: '44px',
           boxShadow: loading ? 'none' : '0 4px 20px rgba(255,77,28,0.35)',
+          letterSpacing: '-0.01em',
+          position: 'relative',
         }}
       >
         {loading
-          ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }}/> Redirecting…</>
-          : <><CreditCard size={15}/> 🔥 Unlock Full Report — ₹2,499</>
+          ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Redirecting to Stripe…</>
+          : <>🔥 Unlock Full Report — ₹2,499</>
         }
       </motion.button>
-      {err && <p style={{ margin: '6px 0 0', fontSize: 11, color: '#FF4D1C', textAlign: 'center' }}>{err}</p>}
-      <p style={{ margin: '8px 0 0', fontSize: 10, color: '#4E4D6E', textAlign: 'center' }}>
-        Enter your URL in the box above first, then click here
-      </p>
+
+      {err && (
+        <p style={{ fontSize: 11, color: '#FF6B35', textAlign: 'center', margin: 0 }}>
+          {err}
+        </p>
+      )}
     </div>
   );
 }
@@ -121,8 +170,10 @@ export function Pricing() {
       <div
         aria-hidden="true"
         style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,77,28,0.05) 0%, transparent 70%)',
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: 'radial-gradient(ellipse 70% 50% at 50% 100%, rgba(255,77,28,0.06) 0%, transparent 70%)',
         }}
       />
 
@@ -135,11 +186,16 @@ export function Pricing() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-6 px-4 py-1.5 rounded-full"
-            style={{ background: 'rgba(255,77,28,0.08)', border: '1px solid rgba(255,77,28,0.2)', color: '#FF6B3D' }}>
-            <Zap size={11}/> Pricing
+          <div
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest mb-6 px-4 py-1.5 rounded-full"
+            style={{ background: 'rgba(255,77,28,0.08)', border: '1px solid rgba(255,77,28,0.2)', color: '#FF6B3D' }}
+          >
+            <Zap size={11} /> Pricing
           </div>
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-3" style={{ color: '#F0EFF8', letterSpacing: '-0.025em' }}>
+          <h2
+            className="text-3xl md:text-4xl font-black tracking-tight mb-3"
+            style={{ color: '#F0EFF8', letterSpacing: '-0.03em' }}
+          >
             Simple. No subscriptions.
           </h2>
           <p className="text-sm md:text-base max-w-sm mx-auto" style={{ color: '#7E7D9A' }}>
@@ -162,7 +218,8 @@ export function Pricing() {
               background: 'linear-gradient(145deg, #141424 0%, #0F0F1C 100%)',
               border: '1px solid rgba(255,255,255,0.08)',
               padding: '28px 24px',
-              display: 'flex', flexDirection: 'column',
+              display: 'flex',
+              flexDirection: 'column',
               boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
             }}
           >
@@ -175,7 +232,6 @@ export function Pricing() {
 
             <p style={{ color: '#6E6D8E', fontSize: 13, marginBottom: 20 }}>3 dimensions. No card required.</p>
 
-            {/* Price */}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 24 }}>
               <span style={{ fontSize: 20, color: '#6E6D8E', lineHeight: 1.6 }}>₹</span>
               <motion.span
@@ -189,17 +245,17 @@ export function Pricing() {
               </motion.span>
             </div>
 
-            {/* Features */}
             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 9 }}>
               {FREE_FEATURES.map((f, i) => (
-                <motion.li key={f}
+                <motion.li
+                  key={f}
                   initial={{ opacity: 0, x: -8 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.15 + i * 0.06, duration: 0.3 }}
                   viewport={{ once: true }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#9997BC' }}
                 >
-                  <Check size={12} style={{ color: '#32D74B', flexShrink: 0 }}/>
+                  <Check size={12} style={{ color: '#32D74B', flexShrink: 0 }} />
                   {f}
                 </motion.li>
               ))}
@@ -222,8 +278,10 @@ export function Pricing() {
               background: 'linear-gradient(145deg, #1C0E08 0%, #130820 50%, #0F0F1C 100%)',
               border: '1px solid rgba(255,77,28,0.22)',
               padding: '28px 24px',
-              display: 'flex', flexDirection: 'column',
-              position: 'relative', overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              overflow: 'hidden',
               boxShadow: '0 4px 32px rgba(255,77,28,0.08), 0 4px 24px rgba(0,0,0,0.4)',
             }}
           >
@@ -240,7 +298,7 @@ export function Pricing() {
               }}
             />
 
-            {/* Animated top border */}
+            {/* Animated top border sweep */}
             <motion.div
               aria-hidden="true"
               animate={{ x: ['-100%', '100%'] }}
@@ -259,9 +317,10 @@ export function Pricing() {
               </span>
             </div>
 
-            <p style={{ color: '#7E7D9A', fontSize: 13, marginBottom: 20, position: 'relative' }}>All 9 dimensions. One-time payment.</p>
+            <p style={{ color: '#7E7D9A', fontSize: 13, marginBottom: 20, position: 'relative' }}>
+              All 9 dimensions. One-time payment.
+            </p>
 
-            {/* Price */}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, marginBottom: 24, position: 'relative' }}>
               <span style={{ fontSize: 20, color: '#7E7D9A', lineHeight: 1.6 }}>₹</span>
               <motion.span
@@ -275,17 +334,17 @@ export function Pricing() {
               </motion.span>
             </div>
 
-            {/* Features */}
             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 9, position: 'relative' }}>
               {PAID_FEATURES.map((f, i) => (
-                <motion.li key={f}
+                <motion.li
+                  key={f}
                   initial={{ opacity: 0, x: -8 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + i * 0.06, duration: 0.3 }}
                   viewport={{ once: true }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#B8B7D0' }}
                 >
-                  <Check size={12} style={{ color: '#FF4D1C', flexShrink: 0 }}/>
+                  <Check size={12} style={{ color: '#FF4D1C', flexShrink: 0 }} />
                   {f}
                 </motion.li>
               ))}
@@ -307,7 +366,7 @@ export function Pricing() {
           className="flex items-center justify-center gap-2 mt-6"
           style={{ color: '#3E3D5E', fontSize: 12 }}
         >
-          <ShieldCheckIcon size={14}/>
+          <ShieldCheckIcon size={14} />
           <span>Secure payment via Stripe · INR · No subscription</span>
         </motion.div>
       </div>
