@@ -777,7 +777,7 @@ function AnalyzeContent() {
 
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
-  const isAdmin = user?.emailAddresses.some(e => ADMIN_EMAILS.includes(e.emailAddress)) ?? false;
+  const isAdmin = user?.emailAddresses.some(e => ADMIN_EMAILS.includes(e.emailAddress.toLowerCase())) ?? false;
 
   const [status, setStatus]   = useState("warming up the roast machine…");
   const [dims, setDims]       = useState<DimensionResult[]>([]);
@@ -817,9 +817,12 @@ function AnalyzeContent() {
     if (started.current) return;
     if (!upload && !url) return;
     if (cachedId) return; // handled by cachedId useEffect
+    // Wait for Clerk auth to finish loading before starting
+    if (!isLoaded) return;
+    if (started.current) return;
 
-    // Session gate: 1 free audit per session without sign-in
-    if (!isSignedIn && !paid) {
+    // Session gate: 1 free audit per session without sign-in (URL audits only)
+    if (!upload && !isSignedIn && !paid) {
       const count = parseInt(localStorage.getItem("roastlab_audit_count") ?? "0");
       if (count >= 1) {
         setGated(true);
@@ -830,20 +833,22 @@ function AnalyzeContent() {
     started.current = true;
 
     const form = new FormData();
-    form.append("tier", tier);
-    if (paid) form.append("paid", "1");
+    form.append("tier", effectiveTier);
+    if (paid || isAdmin) form.append("paid", "1");
 
     if (upload) {
       try {
         const raw = sessionStorage.getItem("roastlab_upload");
-        if (!raw) { setError("No screenshot found. Please upload again."); return; }
+        if (!raw) { setError("No screenshot found. Please upload again."); started.current = false; return; }
         const { base64, mimeType, name } = JSON.parse(raw) as { base64: string; mimeType: string; name: string };
-        sessionStorage.removeItem("roastlab_upload");
+        // Don't remove from sessionStorage until fetch actually starts
         form.append("imageBase64", base64);
         form.append("imageMimeType", mimeType);
         setUploadName(name);
+        sessionStorage.removeItem("roastlab_upload");
       } catch {
         setError("Failed to read uploaded screenshot.");
+        started.current = false;
         return;
       }
     } else {

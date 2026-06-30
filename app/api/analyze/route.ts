@@ -12,7 +12,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { saveAudit, logApiUsage } from '@/lib/db';
 import { sendAuditEmail } from '@/lib/email';
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bonthalamadhavi1@gmail.com')
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bonthalamadhavi1@gmail.com,ritesh@gratiantechnologies.com')
   .split(',').map(e => e.trim().toLowerCase());
 
 export const runtime = 'nodejs';
