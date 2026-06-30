@@ -9,7 +9,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
 import { captureScreenshot, captureMultipleScreenshots, crawlPage, extractSiteData, crawlSubpages } from '@/lib/screenshot';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
-import { saveAudit } from '@/lib/db';
+import { saveAudit, logApiUsage } from '@/lib/db';
 import { sendAuditEmail } from '@/lib/email';
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'bonthalamadhavi1@gmail.com')
@@ -155,27 +155,42 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Persist audit + email if user is signed in
+        // Persist audit + email for every signed-in user
         if (clerkUser) {
           const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
           const userName = clerkUser.firstName ?? undefined;
+          const auditUrl = url ?? 'screenshot-upload';
 
           saveAudit({
             userId: clerkUser.id,
-            url: url ?? 'screenshot',
+            url: auditUrl,
             score: result.overallScore,
             tier,
             dimensions: result.dimensions,
           }).catch(() => {/* non-fatal */});
 
-          if (userEmail && url) {
+          // Email every completed audit — URL or screenshot upload
+          if (userEmail) {
             sendAuditEmail({
               to: userEmail,
               name: userName,
-              url,
+              url: auditUrl,
               score: result.overallScore,
               dims: result.dimensions,
+              tier,
+              userId: clerkUser.id,
             }).catch(() => {/* non-fatal */});
+          }
+
+          // Log API usage for admin stats
+          if (result.providerUsed) {
+            logApiUsage({
+              userId: clerkUser.id,
+              provider: result.providerUsed,
+              model: result.providerUsed,
+              tokensIn: 0,
+              tokensOut: 0,
+            }).catch(() => {});
           }
         }
 

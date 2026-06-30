@@ -4,6 +4,7 @@
  */
 
 import { Resend } from 'resend';
+import { logEmail } from './db';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'RoastLab <onboarding@resend.dev>';
@@ -89,11 +90,16 @@ export async function sendAuditEmail(opts: {
   url: string;
   score: number;
   dims: DimResult[];
+  tier?: string;
+  userId?: string;
 }): Promise<void> {
-  const { to, name, url, score, dims } = opts;
+  const { to, name, url, score, dims, tier, userId } = opts;
   const sc = scoreColor(score);
   const verdict = scoreVerdict(score);
   const greeting = name ? `Hey ${name},` : 'Hey,';
+  const isScreenshot = url === 'screenshot-upload';
+  const displayUrl = isScreenshot ? 'your uploaded screenshot' : url;
+  const fullTier = tier === 'full' ? 'Full' : 'Free';
   const dimRows = dims.map(d => {
     const c = scoreColor(d.score);
     const label = DIM_LABELS[d.dimension] ?? d.dimension;
@@ -114,7 +120,7 @@ export async function sendAuditEmail(opts: {
     <tr><td style="padding:32px 28px 24px;">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#E8334A;">YOUR ROAST REPORT</p>
       <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;letter-spacing:-0.03em;color:#FAFAFA;">The verdict is in.</h1>
-      <p style="margin:0;font-size:14px;color:#8B8BA3;line-height:1.6;">${greeting} We roasted <strong style="color:#FAFAFA;">${url}</strong> and we have notes.</p>
+      <p style="margin:0;font-size:14px;color:#8B8BA3;line-height:1.6;">${greeting} We roasted <strong style="color:#FAFAFA;">${displayUrl}</strong> across ${dims.length} dimensions. ${fullTier} roast. We have notes.</p>
     </td></tr>
     <!-- Score block -->
     <tr><td style="padding:0 28px 28px;">
@@ -129,7 +135,7 @@ export async function sendAuditEmail(opts: {
             <p style="margin:8px 0 0;font-size:15px;font-weight:700;color:#FAFAFA;">${verdict}</p>
           </td>
           <td style="padding:20px 24px;text-align:right;vertical-align:middle;">
-            <a href="https://getroastlab.vercel.app/analyze?url=${encodeURIComponent(url)}&tier=free"
+            <a href="${isScreenshot ? 'https://getroastlab.vercel.app' : `https://getroastlab.vercel.app/analyze?url=${encodeURIComponent(url)}&tier=${tier ?? 'free'}`}"
               style="display:inline-block;padding:12px 22px;background:linear-gradient(135deg,#E8334A,#FF6B3D);color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:-0.01em;">
               View Full Report →
             </a>
@@ -155,12 +161,21 @@ export async function sendAuditEmail(opts: {
       </a>
     </td></tr>`;
 
+  const subject = isScreenshot
+    ? `Your RoastLab screenshot audit — score: ${score}/100 (${fullTier})`
+    : `Your RoastLab report for ${url} — score: ${score}/100 (${fullTier})`;
+
   await resend.emails.send({
     from: FROM,
     to,
-    subject: `Your RoastLab report for ${url} — score: ${score}/100`,
+    subject,
     html: baseLayout(`<table width="100%" cellpadding="0" cellspacing="0">${content}</table>`),
   });
+
+  // Log sent email for admin stats (non-fatal)
+  if (userId) {
+    logEmail({ userId, email: to, subject, url, score, tier: tier ?? 'free' }).catch(() => {});
+  }
 }
 
 export async function sendWelcomeEmail(opts: { to: string; name?: string }): Promise<void> {
