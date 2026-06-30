@@ -63,13 +63,7 @@ export async function generateRoastPDF(opts: { url: string; score: number; dims:
   function setColor(rgb: [number, number, number]) {
     doc.setTextColor(rgb[0], rgb[1], rgb[2]);
   }
-  function setFillColor(rgb: [number, number, number], alpha = 1) {
-    if (alpha < 1) {
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-    } else {
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-    }
-  }
+
   function newPageIfNeeded(y: number, needed = 20): number {
     if (y + needed > 275) {
       doc.addPage();

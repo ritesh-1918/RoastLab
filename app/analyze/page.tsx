@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
@@ -61,34 +61,6 @@ const TAUNTS = [
   "🔬 finding crimes you thought were hidden…",
   "⚠️ this is going to be a lot…",
 ];
-
-/* ─── Score badge ────────────────────────────────────────────────────────── */
-function ScoreBadge({ score, size = 56 }: { score: number; size?: number }) {
-  const m = scoreMeta(score);
-  const sw = 5;
-  const r = (size - sw * 2) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - score / 100);
-  return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: "absolute", inset: 0 }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={sw}/>
-        <motion.circle cx={size/2} cy={size/2} r={r} fill="none"
-          stroke={m.color} strokeWidth={sw} strokeLinecap="round"
-          strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.4, ease: [0.16,1,0.3,1], delay: 0.15 }}
-          transform={`rotate(-90 ${size/2} ${size/2})`}
-          style={{ filter: `drop-shadow(0 0 6px ${m.color}88)` }}
-        />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: size * 0.28, fontWeight: 900, color: "#F0EFF8", lineHeight: 1, fontFamily: "system-ui,sans-serif" }}>{score}</span>
-      </div>
-    </div>
-  );
-}
 
 /* ─── Browser frame + screenshot ─────────────────────────────────────────── */
 function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
@@ -344,7 +316,7 @@ function Finding({ f, i }: { f: Finding; i: number }) {
       {/* Quote */}
       {f.quote && (
         <div style={{ margin: "0 0 6px", padding: "6px 10px", background: "#0A0A0A", borderLeft: `2px solid ${s.color}44`, fontSize: 11, fontStyle: "italic", color: "#555", lineHeight: 1.5, fontFamily: MONO }}>
-          "{f.quote}"
+          &ldquo;{f.quote}&rdquo;
         </div>
       )}
       {/* Fix */}
@@ -382,7 +354,7 @@ function CrimeSceneCard({ result, idx, isWorst }: { result: DimensionResult; idx
         {/* Witness statement */}
         <div style={{ margin: "0 16px 12px", padding: "9px 12px", background: "#0D0D00", borderLeft: `3px solid ${TAPE}` }}>
           <div style={{ fontFamily: MONO, fontSize: 8, color: TAPE, marginBottom: 5, letterSpacing: "0.15em" }}>WITNESS STATEMENT:</div>
-          <p style={{ margin: 0, fontSize: 12, color: "#AAA", fontStyle: "italic", lineHeight: 1.65 }}>"{result.summary}"</p>
+          <p style={{ margin: 0, fontSize: 12, color: "#AAA", fontStyle: "italic", lineHeight: 1.65 }}>&ldquo;{result.summary}&rdquo;</p>
         </div>
         {/* Findings */}
         <AnimatePresence>
@@ -395,7 +367,7 @@ function CrimeSceneCard({ result, idx, isWorst }: { result: DimensionResult; idx
                     style={{ marginBottom: 10, padding: "7px 10px", background: "#0A0A00", borderLeft: `3px solid ${f.severity === "critical" ? TAPE : f.severity === "high" ? "#FF4400" : "#333"}` }}>
                     <div style={{ fontFamily: MONO, fontSize: 8, color: "#333", marginBottom: 3 }}>EVIDENCE {String(i + 1).padStart(2, "0")} [{f.severity.toUpperCase()}]</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#DDD", marginBottom: 3 }}>{f.title}</div>
-                    {f.quote && <div style={{ fontSize: 10, fontStyle: "italic", color: "#444", marginBottom: 3 }}>"{f.quote}"</div>}
+                    {f.quote && <div style={{ fontSize: 10, fontStyle: "italic", color: "#444", marginBottom: 3 }}>&ldquo;{f.quote}&rdquo;</div>}
                     <div style={{ fontFamily: MONO, fontSize: 10, color: "#555" }}><span style={{ color: TAPE }}>REMEDY → </span>{f.action}</div>
                   </motion.div>
                 ))}
@@ -473,7 +445,7 @@ function HackerCard({ result, idx, isWorst }: { result: DimensionResult; idx: nu
                     <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
                       style={{ marginBottom: 9, paddingLeft: 10, borderLeft: `2px solid ${fc}` }}>
                       <div style={{ fontSize: 8, color: "#004A15", marginBottom: 2 }}>[{String(i + 1).padStart(2, "0")}] {f.severity.toUpperCase()} :: {f.title}</div>
-                      {f.quote && <div style={{ fontSize: 9, color: "#003010", fontStyle: "italic", marginBottom: 2 }}>// "{f.quote}"</div>}
+                      {f.quote && <div style={{ fontSize: 9, color: "#003010", fontStyle: "italic", marginBottom: 2 }}>{'// '}&ldquo;{f.quote}&rdquo;</div>}
                       <div style={{ fontSize: 9, color: "#00AA28" }}><span style={{ color: GREEN }}>PATCH: </span>{f.action}</div>
                     </motion.div>
                   );
@@ -494,7 +466,6 @@ function HackerCard({ result, idx, isWorst }: { result: DimensionResult; idx: nu
 function BreakingNewsCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
   const [open, setOpen] = useState(true);
   const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
-  const sm = scoreMeta(result.score);
   const RED = "#8B0000"; const INK = "#1A0A04"; const CREAM = "#F0E8D8";
   const headline = `${meta.label.toUpperCase()} IN CRISIS: SCORE ${result.score}/100`;
   return (
@@ -527,7 +498,7 @@ function BreakingNewsCard({ result, idx, isWorst }: { result: DimensionResult; i
           </div>
           <h2 style={{ margin: "0 0 3px", fontSize: isWorst ? 19 : 16, fontWeight: 900, color: INK, lineHeight: 1.2, letterSpacing: "-0.01em", textTransform: "uppercase" }}>{headline}</h2>
           <div style={{ fontSize: 8, color: "#6A4020", fontStyle: "italic", marginBottom: 6 }}>By RoastLab Correspondent · Score: {result.score}/100 · Published now</div>
-          <p style={{ margin: "0 0 6px", fontSize: 12, color: INK, lineHeight: 1.65, fontStyle: "italic", borderLeft: `3px solid ${RED}`, paddingLeft: 9 }}>"{result.summary}"</p>
+          <p style={{ margin: "0 0 6px", fontSize: 12, color: INK, lineHeight: 1.65, fontStyle: "italic", borderLeft: `3px solid ${RED}`, paddingLeft: 9 }}>&ldquo;{result.summary}&rdquo;</p>
           <div style={{ clear: "both" }} />
         </div>
         {/* Article body — findings */}
@@ -543,8 +514,8 @@ function BreakingNewsCard({ result, idx, isWorst }: { result: DimensionResult; i
                       <span style={{ fontSize: 7, fontWeight: 900, background: RED, color: "#FFE600", padding: "1px 4px", flexShrink: 0, marginTop: 2 }}>{f.severity.toUpperCase()}</span>
                       <span style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{f.title}</span>
                     </div>
-                    {f.quote && <p style={{ margin: "0 0 3px", fontSize: 10, fontStyle: "italic", color: "#6A4020", paddingLeft: 6 }}>"{f.quote}"</p>}
-                    <p style={{ margin: 0, fontSize: 10, color: "#4A2010" }}><span style={{ fontWeight: 900, color: RED }}>EDITOR'S NOTE: </span>{f.action}</p>
+                    {f.quote && <p style={{ margin: "0 0 3px", fontSize: 10, fontStyle: "italic", color: "#6A4020", paddingLeft: 6 }}>&ldquo;{f.quote}&rdquo;</p>}
+                    <p style={{ margin: 0, fontSize: 10, color: "#4A2010" }}><span style={{ fontWeight: 900, color: RED }}>EDITOR&apos;S NOTE: </span>{f.action}</p>
                   </motion.div>
                 ))}
               </div>
@@ -629,7 +600,7 @@ function MedicalCard({ result, idx, isWorst }: { result: DimensionResult; idx: n
                         <span style={{ fontSize: 7, color: fc, fontFamily: MONO, letterSpacing: "0.08em" }}>[{f.severity.toUpperCase()}]</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#C0EDED" }}>{f.title}</span>
                       </div>
-                      {f.quote && <div style={{ fontSize: 10, color: "#4A8A87", fontStyle: "italic", marginBottom: 3 }}>"{f.quote}"</div>}
+                      {f.quote && <div style={{ fontSize: 10, color: "#4A8A87", fontStyle: "italic", marginBottom: 3 }}>&ldquo;{f.quote}&rdquo;</div>}
                       <div style={{ fontSize: 9, color: "#6A9E9C", fontFamily: MONO }}><span style={{ color: TEAL }}>Rx → </span>{f.action}</div>
                     </motion.div>
                   );
