@@ -27,13 +27,13 @@ export function getProviders(): Provider[] {
     {
       name: 'openrouter-1',
       client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
-      model: 'google/gemini-2.0-flash-001',
+      model: 'meta-llama/llama-4-scout:free',
       supportsVision: true,
     },
     {
       name: 'openrouter-2',
       client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
-      model: 'meta-llama/llama-4-scout:free',
+      model: 'meta-llama/llama-4-maverick:free',
       supportsVision: true,
     },
     {
