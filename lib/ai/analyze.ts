@@ -5,6 +5,7 @@
  */
 
 import { withFallback, type Provider } from './providers';
+import { getSetting } from '../db';
 import type OpenAI from 'openai';
 
 export const DIMENSIONS = [
@@ -164,8 +165,17 @@ async function analyzeDimension(
   url?: string,
   pageContent?: string,
 ): Promise<DimensionResult> {
+  // Load prompt overrides from DB (admin-customizable, non-fatal)
+  const [sysOverride, dimOverride] = await Promise.all([
+    getSetting('system_prompt').catch(() => null),
+    getSetting(`prompt_${dimension}`).catch(() => null),
+  ]);
+
+  const systemContent = (sysOverride && sysOverride.trim()) ? sysOverride : buildSystemPrompt();
+  const dimContent = (dimOverride && dimOverride.trim()) ? dimOverride : buildDimensionPrompt(dimension, url, pageContent);
+
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: 'system', content: buildSystemPrompt() },
+    { role: 'system', content: systemContent },
     {
       role: 'user',
       content: [
@@ -178,7 +188,7 @@ async function analyzeDimension(
         },
         {
           type: 'text',
-          text: buildDimensionPrompt(dimension, url, pageContent),
+          text: dimContent,
         },
       ],
     },
