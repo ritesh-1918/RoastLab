@@ -155,9 +155,6 @@ export async function generateRoastPDF(opts: { url: string; score: number; dims:
     if (px + lw > W - MARGIN) return;
 
     doc.setFillColor(dc[0], dc[1], dc[2]);
-    doc.setGState({ opacity: 0.08 } as any);
-    doc.roundedRect(px, py - 4, lw, 7, 1, 1, "F");
-    doc.setGState({ opacity: 1 } as any);
 
     doc.setDrawColor(dc[0], dc[1], dc[2]);
     doc.setLineWidth(0.3);

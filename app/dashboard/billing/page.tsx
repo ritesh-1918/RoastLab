@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
-import { LayoutDashboard, FileText, User, CreditCard, Check, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, FileText, User, CreditCard, Check } from 'lucide-react';
 import { BillingStripeButton } from '@/components/billing-stripe-button';
 
 const NAV = [
@@ -51,8 +51,8 @@ export default async function BillingPage() {
           <span style={{ fontSize: 13, color: '#8B8BA3', fontWeight: 500 }}>Billing</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: '#8B8BA3', textDecoration: 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid #27273A' }}>
-            New audit <ExternalLink size={11} />
+          <Link href="/dashboard#quick-audit" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: '#8B8BA3', textDecoration: 'none', padding: '6px 10px', borderRadius: 6, border: '1px solid #27273A' }}>
+            New audit
           </Link>
           <UserButton />
         </div>

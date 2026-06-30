@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link href="/analyze" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <LogoMark size={24} />
             <span style={{ fontWeight: 900, fontSize: 14, letterSpacing: '-0.04em', color: '#FAFAFA' }}>
               ROAST<span style={{ color: '#E8334A' }}>LAB</span>
@@ -56,8 +56,8 @@ export default async function DashboardPage() {
           <span style={{ fontSize: 13, color: '#8B8BA3', fontWeight: 500 }}>Dashboard</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link
-            href="/analyze"
+          <a
+            href="#quick-audit"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
             }}
           >
             New audit
-          </Link>
+          </a>
           <UserButton />
         </div>
       </header>
@@ -167,12 +167,14 @@ export default async function DashboardPage() {
 
           {/* Quick audit */}
           <div
+            id="quick-audit"
             style={{
               background: '#111117',
               border: '1px solid #1E1E28',
               borderRadius: 16,
               padding: '24px',
               marginBottom: 24,
+              scrollMarginTop: '80px',
             }}
           >
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px', letterSpacing: '-0.02em' }}>

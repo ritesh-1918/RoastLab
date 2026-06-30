@@ -7,7 +7,7 @@ export async function captureScreenshot(url: string): Promise<{
 }> {
   // Primary: thum.io — no API key, free, reliable
   try {
-    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/${url}`;
+    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/viewportwait/6000/${url}`;
     const res = await fetch(thumUrl, {
       headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
       signal: AbortSignal.timeout(28_000),
@@ -24,7 +24,7 @@ export async function captureScreenshot(url: string): Promise<{
   }
 
   // Fallback: microlink
-  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80`;
+  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80&screenshot.waitForTimeout=6000`;
   const res = await fetch(apiUrl, {
     headers: process.env.MICROLINK_API_KEY ? { 'x-api-key': process.env.MICROLINK_API_KEY } : {},
     signal: AbortSignal.timeout(35_000),
