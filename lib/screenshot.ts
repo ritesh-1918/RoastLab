@@ -47,8 +47,8 @@ export async function captureScreenshot(url: string): Promise<{
 }
 
 /**
- * Capture 3 screenshots at different scroll depths (top, mid, bottom).
- * All concurrent. Returns array of public image URLs.
+ * Capture 3 screenshots at different scroll depths: viewport top, below-fold, full-page.
+ * Primary: thum.io (no API key, concurrent). Fallback: microlink if thum.io yields nothing.
  * Max ~20s total.
  */
 export async function captureMultipleScreenshots(url: string): Promise<string[]> {
@@ -69,14 +69,41 @@ export async function captureMultipleScreenshots(url: string): Promise<string[]>
     }
   };
 
-  // 3 shots: viewport top (5s wait), below-fold tall crop (8s wait), full page (10s wait)
+  const microlinkShot = async (fullPage: boolean): Promise<string | null> => {
+    try {
+      const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=75&screenshot.fullPage=${fullPage}&screenshot.waitForTimeout=5000`;
+      const res = await fetch(apiUrl, {
+        headers: process.env.MICROLINK_API_KEY ? { 'x-api-key': process.env.MICROLINK_API_KEY } : {},
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!res.ok) return null;
+      const json = await res.json() as { status: string; data?: { screenshot?: { url?: string } } };
+      if (json.status !== 'success') return null;
+      return json?.data?.screenshot?.url ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 3 concurrent thum.io shots: viewport top (5s), tall fold (8s), full page (10s)
   const [top, tall, full] = await Promise.all([
     thumShot('crop/900/viewportwait/5000'),
     thumShot('crop/1800/viewportwait/8000'),
     thumShot('viewportwait/10000/fullpage'),
   ]);
 
-  return [top, tall, full].filter(Boolean) as string[];
+  const thumResults = [top, tall, full].filter(Boolean) as string[];
+
+  // If thum.io produced nothing, fallback to microlink (viewport + fullpage)
+  if (thumResults.length === 0) {
+    const [mlTop, mlFull] = await Promise.all([
+      microlinkShot(false),
+      microlinkShot(true),
+    ]);
+    return [mlTop, mlFull].filter(Boolean) as string[];
+  }
+
+  return thumResults;
 }
 
 /**

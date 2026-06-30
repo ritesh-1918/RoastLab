@@ -325,90 +325,305 @@ function Finding({ f, i }: { f: Finding; i: number }) {
   );
 }
 
-/* ─── Roast Card — hard-edged evidence card ──────────────────────────────── */
-function RoastCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
+/* ─── Theme 0: Crime Scene ───────────────────────────────────────────────── */
+function CrimeSceneCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
   const [open, setOpen] = useState(true);
   const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
-  const sm = scoreMeta(result.score);
-  const MONO = "'Courier New', 'Lucida Console', monospace";
-  const borderCol = isWorst ? "#E8334A" : "#222";
-  const shadowCol = isWorst ? "#E8334A" : "#1A1A1A";
-
+  const TAPE = "#FFE600"; const MONO = "'Courier New','Lucida Console',monospace";
+  const verdict = result.score < 40 ? "GUILTY" : result.score < 65 ? "PROBATION" : "ACQUITTED";
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.16,1,0.3,1] }}
-      style={{ marginBottom: 20 }}
-    >
-      <div style={{
-        border: `2px solid ${borderCol}`,
-        boxShadow: `6px 6px 0 ${shadowCol}`,
-        background: isWorst ? "#130508" : "#0D0D0D",
-        overflow: "hidden",
-      }}>
-        {/* Header bar */}
-        <button onClick={() => setOpen(v => !v)}
-          style={{ width: "100%", background: isWorst ? "#1A0609" : "#111", border: "none", borderBottom: `1px solid ${borderCol}40`, cursor: "pointer", padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, textAlign: "left" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-            {/* Index tag */}
-            <span style={{ fontFamily: MONO, fontSize: 10, color: "#333", letterSpacing: "0.05em", flexShrink: 0 }}>
-              [{String(idx + 1).padStart(2, "0")}]
-            </span>
-            {/* Dim label */}
-            <span style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: isWorst ? "#E8334A" : meta.color, flexShrink: 0 }}>
-              {meta.label}
-            </span>
-            {isWorst && (
-              <span style={{ fontFamily: MONO, fontSize: 9, color: "#E8334A", letterSpacing: "0.06em", border: "1px solid #E8334A44", padding: "1px 6px" }}>
-                WORST
-              </span>
-            )}
-          </div>
-          {/* Score — big mono number */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 3, flexShrink: 0 }}>
-            <span style={{ fontFamily: MONO, fontSize: 36, fontWeight: 900, lineHeight: 1, color: sm.color }}>{result.score}</span>
-            <span style={{ fontFamily: MONO, fontSize: 12, color: "#333" }}>/100</span>
-          </div>
-        </button>
-
-        {/* Summary — big italic roast line */}
-        <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${borderCol}20` }}>
-          <p style={{ margin: 0, fontSize: 14, fontStyle: "italic", color: isWorst ? "#D0A0A8" : "#AAA", lineHeight: 1.6, borderLeft: `3px solid ${isWorst ? "#E8334A" : meta.color}`, paddingLeft: 12 }}>
-            {result.summary}
-          </p>
+    <motion.div initial={{ opacity: 0, rotate: -0.5 }} animate={{ opacity: 1, rotate: isWorst ? 0.5 : -0.3 }}
+      transition={{ duration: 0.5, delay: idx * 0.1 }} style={{ marginBottom: 24, position: "relative" }}>
+      <div style={{ height: 22, background: `repeating-linear-gradient(45deg,${TAPE},${TAPE} 12px,#000 12px,#000 24px)`, borderBottom: "2px solid #000" }} />
+      <div style={{ background: "#080808", border: `2px solid ${isWorst ? TAPE : "#2A2A00"}`, boxShadow: isWorst ? `0 0 28px rgba(255,230,0,0.18)` : "none", position: "relative", overflow: "hidden" }}>
+        {/* Evidence number circle */}
+        <div style={{ position: "absolute", right: 14, top: 14, width: 38, height: 38, borderRadius: "50%", border: `2px solid ${TAPE}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontSize: 13, fontWeight: 900, color: TAPE }}>
+          {String(idx + 1).padStart(2, "0")}
         </div>
-
+        {/* Header */}
+        <div style={{ padding: "14px 60px 10px 16px" }}>
+          <div style={{ fontFamily: MONO, fontSize: 9, color: TAPE, letterSpacing: "0.2em", marginBottom: 3 }}>EXHIBIT {String(idx + 1).padStart(2, "0")} — CASE FILE</div>
+          <div style={{ fontSize: 17, fontWeight: 900, textTransform: "uppercase", color: "#EEE", letterSpacing: "-0.01em" }}>{meta.label}</div>
+          <div style={{ fontFamily: MONO, fontSize: 10, color: "#555", marginTop: 3 }}>
+            SENTENCE: {result.score}/100 — <span style={{ color: result.score < 40 ? "#FF2D55" : result.score < 65 ? "#FF9F0A" : "#32D74B" }}>{verdict}</span>
+            {isWorst && <span style={{ marginLeft: 8, color: TAPE, border: `1px solid ${TAPE}44`, padding: "0 5px" }}>WORST OFFENDER</span>}
+          </div>
+        </div>
+        {/* Witness statement */}
+        <div style={{ margin: "0 16px 12px", padding: "9px 12px", background: "#0D0D00", borderLeft: `3px solid ${TAPE}` }}>
+          <div style={{ fontFamily: MONO, fontSize: 8, color: TAPE, marginBottom: 5, letterSpacing: "0.15em" }}>WITNESS STATEMENT:</div>
+          <p style={{ margin: 0, fontSize: 12, color: "#AAA", fontStyle: "italic", lineHeight: 1.65 }}>"{result.summary}"</p>
+        </div>
         {/* Findings */}
         <AnimatePresence>
           {open && (
-            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-              transition={{ duration: 0.25, ease: [0.16,1,0.3,1] }}
-              style={{ overflow: "hidden" }}
-            >
-              <div style={{ padding: "14px 18px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2A2A2A" }}>
-                    evidence ({result.findings.length} counts)
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: "#1A1A1A" }}/>
-                </div>
-                {result.findings.map((f, i) => <Finding key={i} f={f} i={i} />)}
+            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.25 }} style={{ overflow: "hidden" }}>
+              <div style={{ padding: "0 16px 14px" }}>
+                <div style={{ fontFamily: MONO, fontSize: 8, color: "#2A2A00", letterSpacing: "0.12em", marginBottom: 8 }}>EVIDENCE LOG ({result.findings.length} counts):</div>
+                {result.findings.map((f, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
+                    style={{ marginBottom: 10, padding: "7px 10px", background: "#0A0A00", borderLeft: `3px solid ${f.severity === "critical" ? TAPE : f.severity === "high" ? "#FF4400" : "#333"}` }}>
+                    <div style={{ fontFamily: MONO, fontSize: 8, color: "#333", marginBottom: 3 }}>EVIDENCE {String(i + 1).padStart(2, "0")} [{f.severity.toUpperCase()}]</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#DDD", marginBottom: 3 }}>{f.title}</div>
+                    {f.quote && <div style={{ fontSize: 10, fontStyle: "italic", color: "#444", marginBottom: 3 }}>"{f.quote}"</div>}
+                    <div style={{ fontFamily: MONO, fontSize: 10, color: "#555" }}><span style={{ color: TAPE }}>REMEDY → </span>{f.action}</div>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", background: "#0A0A00", border: "none", borderTop: "1px solid #1A1A00", padding: "6px", fontFamily: MONO, fontSize: 8, color: "#333", cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          {open ? "▲ seal case file" : "▼ open case file"}
+        </button>
+      </div>
+      <div style={{ height: 22, background: `repeating-linear-gradient(45deg,${TAPE},${TAPE} 12px,#000 12px,#000 24px)`, borderTop: "2px solid #000" }} />
+    </motion.div>
+  );
+}
 
-        {/* Toggle */}
-        <button onClick={() => setOpen(v => !v)}
-          style={{ width: "100%", padding: "7px", background: "transparent", border: "none", borderTop: `1px solid #1A1A1A`, cursor: "pointer", fontFamily: MONO, fontSize: 9, color: "#2A2A2A", letterSpacing: "0.08em", textTransform: "uppercase" }}
-        >
-          {open ? "▲ collapse" : "▼ show evidence"}
+/* ─── Theme 1: Hacker Terminal ───────────────────────────────────────────── */
+function HackerCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
+  const [open, setOpen] = useState(true);
+  const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
+  const GREEN = "#00FF41"; const DIM_KEY = meta.label.toUpperCase().replace(/\s/g, "_");
+  const breach = result.score < 40; const warn = result.score < 65;
+  const statusColor = breach ? "#FF0000" : warn ? "#FFD60A" : GREEN;
+  const MONO = "'Courier New','Lucida Console',monospace";
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: idx * 0.08 }} style={{ marginBottom: 24 }}>
+      <div style={{
+        background: "#000000",
+        backgroundImage: `repeating-linear-gradient(45deg,rgba(0,255,65,0.025) 0,rgba(0,255,65,0.025) 1px,transparent 1px,transparent 14px),repeating-linear-gradient(-45deg,rgba(0,255,65,0.025) 0,rgba(0,255,65,0.025) 1px,transparent 1px,transparent 14px)`,
+        backgroundSize: "28px 28px",
+        border: `1px solid ${isWorst ? GREEN : "#052010"}`,
+        boxShadow: isWorst ? `0 0 24px rgba(0,255,65,0.12),inset 0 0 40px rgba(0,255,65,0.02)` : "none",
+        fontFamily: MONO,
+      }}>
+        {/* Prompt header */}
+        <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid #052010" }}>
+          <div style={{ fontSize: 9, color: "#023010", marginBottom: 4 }}>root@roastlab:~$ ./scan --dim={DIM_KEY} --mode=deep</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 10, color: "#005A20", marginBottom: 4 }}>&gt; <span style={{ color: statusColor }}>SCANNING {DIM_KEY}...</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 110, height: 7, background: "#001A05", border: `1px solid ${GREEN}22`, position: "relative", overflow: "hidden" }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${result.score}%` }}
+                    transition={{ duration: 0.9, delay: idx * 0.08 + 0.2 }}
+                    style={{ height: "100%", background: statusColor }} />
+                </div>
+                <span style={{ fontSize: 10, color: statusColor }}>{result.score}%</span>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 8, color: "#005A20" }}>EXIT_CODE:</div>
+              <div style={{ fontSize: 34, fontWeight: 900, color: statusColor, lineHeight: 1 }}>{result.score}</div>
+            </div>
+          </div>
+          <div style={{ marginTop: 6, fontSize: 10, color: statusColor }}>
+            {breach ? "⚠ BREACH DETECTED — CRITICAL VULNERABILITIES" : warn ? "! WARNING — SECURITY ADVISORIES FOUND" : "✓ SCAN COMPLETE — MINOR ISSUES ONLY"}
+            {isWorst && <span style={{ marginLeft: 8, border: `1px solid ${GREEN}44`, padding: "0 5px", color: GREEN }}>WORST</span>}
+          </div>
+        </div>
+        {/* Analysis output */}
+        <div style={{ padding: "8px 16px", borderBottom: "1px solid #052010" }}>
+          <div style={{ fontSize: 8, color: "#023010", marginBottom: 3 }}>{"// ANALYSIS OUTPUT:"}</div>
+          <p style={{ margin: 0, fontSize: 12, color: "#00CC33", lineHeight: 1.65, opacity: 0.9 }}>{result.summary}</p>
+        </div>
+        {/* Vulnerability log */}
+        <AnimatePresence>
+          {open && (
+            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
+              <div style={{ padding: "8px 16px 12px" }}>
+                <div style={{ fontSize: 8, color: "#023010", marginBottom: 6 }}>{"/* VULNERABILITY LOG */"}</div>
+                {result.findings.map((f, i) => {
+                  const fc = f.severity === "critical" ? "#FF0000" : f.severity === "high" ? "#FF6600" : f.severity === "medium" ? "#FFD60A" : GREEN;
+                  return (
+                    <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                      style={{ marginBottom: 9, paddingLeft: 10, borderLeft: `2px solid ${fc}` }}>
+                      <div style={{ fontSize: 8, color: "#004A15", marginBottom: 2 }}>[{String(i + 1).padStart(2, "0")}] {f.severity.toUpperCase()} :: {f.title}</div>
+                      {f.quote && <div style={{ fontSize: 9, color: "#003010", fontStyle: "italic", marginBottom: 2 }}>// "{f.quote}"</div>}
+                      <div style={{ fontSize: 9, color: "#00AA28" }}><span style={{ color: GREEN }}>PATCH: </span>{f.action}</div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", background: "#000800", border: "none", borderTop: "1px solid #052010", padding: "5px", fontSize: 8, color: "#023010", cursor: "pointer", letterSpacing: "0.1em", fontFamily: MONO }}>
+          {open ? "$ --collapse" : "$ --expand"}
         </button>
       </div>
     </motion.div>
   );
+}
+
+/* ─── Theme 2: Breaking News ─────────────────────────────────────────────── */
+function BreakingNewsCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
+  const [open, setOpen] = useState(true);
+  const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
+  const sm = scoreMeta(result.score);
+  const RED = "#8B0000"; const INK = "#1A0A04"; const CREAM = "#F0E8D8";
+  const headline = `${meta.label.toUpperCase()} IN CRISIS: SCORE ${result.score}/100`;
+  return (
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: idx * 0.1 }} style={{ marginBottom: 24 }}>
+      <div style={{ background: CREAM, border: `2px solid ${INK}`, boxShadow: isWorst ? `6px 6px 0 ${RED}` : `4px 4px 0 #3A2010`, overflow: "hidden" }}>
+        {/* Ticker tape */}
+        <div style={{ background: RED, height: 26, overflow: "hidden", display: "flex", alignItems: "center" }}>
+          <motion.div animate={{ x: [0, -800] }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            style={{ whiteSpace: "nowrap", fontSize: 9, fontWeight: 900, color: "#FFE600", letterSpacing: "0.12em", fontFamily: "'Courier New',monospace", paddingLeft: "100%" }}>
+            ⚡ BREAKING ⚡ ROASTLAB EXCLUSIVE ⚡ WEBSITE AUDIT ⚡ {meta.label.toUpperCase()} UNDER SCRUTINY ⚡ FULL REPORT BELOW ⚡ BREAKING ⚡ ROASTLAB EXCLUSIVE ⚡ WEBSITE AUDIT ⚡
+          </motion.div>
+        </div>
+        {/* Masthead */}
+        <div style={{ textAlign: "center", padding: "8px 16px 6px", borderBottom: `3px double ${INK}` }}>
+          <div style={{ fontSize: 7, letterSpacing: "0.3em", color: "#6A4020", marginBottom: 4 }}>THE ROASTLAB EXAMINER — {new Date().getFullYear()} — SPECIAL EDITION</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ flex: 1, height: 1, background: INK }} />
+            <span style={{ background: RED, color: "#FFE600", padding: "2px 8px", fontSize: 8, fontWeight: 900, letterSpacing: "0.1em" }}>
+              {isWorst ? "🔴 URGENT" : "⚡ BREAKING"}
+            </span>
+            <div style={{ flex: 1, height: 1, background: INK }} />
+          </div>
+        </div>
+        {/* Headline + score floated right */}
+        <div style={{ padding: "10px 16px 8px" }}>
+          <div style={{ float: "right", marginLeft: 12, marginBottom: 6, padding: "6px 10px", background: result.score < 40 ? RED : result.score < 65 ? "#7A5500" : "#1A5A1A", textAlign: "center", minWidth: 54 }}>
+            <div style={{ fontSize: 32, fontWeight: 900, lineHeight: 1, color: "#FFE600" }}>{result.score}</div>
+            <div style={{ fontSize: 7, color: "#FFE60088", letterSpacing: "0.08em" }}>OUT OF 100</div>
+          </div>
+          <h2 style={{ margin: "0 0 3px", fontSize: isWorst ? 19 : 16, fontWeight: 900, color: INK, lineHeight: 1.2, letterSpacing: "-0.01em", textTransform: "uppercase" }}>{headline}</h2>
+          <div style={{ fontSize: 8, color: "#6A4020", fontStyle: "italic", marginBottom: 6 }}>By RoastLab Correspondent · Score: {result.score}/100 · Published now</div>
+          <p style={{ margin: "0 0 6px", fontSize: 12, color: INK, lineHeight: 1.65, fontStyle: "italic", borderLeft: `3px solid ${RED}`, paddingLeft: 9 }}>"{result.summary}"</p>
+          <div style={{ clear: "both" }} />
+        </div>
+        {/* Article body — findings */}
+        <AnimatePresence>
+          {open && (
+            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.25 }} style={{ overflow: "hidden" }}>
+              <div style={{ padding: "0 16px 12px", borderTop: `1px solid #C0A080` }}>
+                <div style={{ fontSize: 8, letterSpacing: "0.15em", color: "#6A4020", margin: "8px 0 6px", textAlign: "center" }}>— FULL INVESTIGATIVE REPORT —</div>
+                {result.findings.map((f, i) => (
+                  <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                    style={{ marginBottom: 8, borderBottom: "1px dotted #C0A080", paddingBottom: 7 }}>
+                    <div style={{ display: "flex", gap: 5, alignItems: "flex-start", marginBottom: 3 }}>
+                      <span style={{ fontSize: 7, fontWeight: 900, background: RED, color: "#FFE600", padding: "1px 4px", flexShrink: 0, marginTop: 2 }}>{f.severity.toUpperCase()}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{f.title}</span>
+                    </div>
+                    {f.quote && <p style={{ margin: "0 0 3px", fontSize: 10, fontStyle: "italic", color: "#6A4020", paddingLeft: 6 }}>"{f.quote}"</p>}
+                    <p style={{ margin: 0, fontSize: 10, color: "#4A2010" }}><span style={{ fontWeight: 900, color: RED }}>EDITOR'S NOTE: </span>{f.action}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", background: "#E8DCC8", border: "none", borderTop: `2px solid ${INK}`, padding: "6px", fontSize: 8, color: "#6A4020", cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "Georgia,serif" }}>
+          {open ? "▲ fold paper" : "▼ read full story"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Theme 3: Medical Diagnosis (glassmorphism) ─────────────────────────── */
+function MedicalCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
+  const [open, setOpen] = useState(true);
+  const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
+  const TEAL = "#00B5A5"; const critical = result.score < 40; const guarded = result.score < 65;
+  const statusColor = critical ? "#FF3B30" : guarded ? "#FF9F0A" : TEAL;
+  const statusLabel = critical ? "🔴 CRITICAL" : guarded ? "🟡 GUARDED" : "🟢 STABLE";
+  const MONO = "'Courier New','Lucida Console',monospace";
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay: idx * 0.1, ease: [0.16,1,0.3,1] }} style={{ marginBottom: 24 }}>
+      <div style={{
+        background: "rgba(0,181,165,0.05)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: `1px solid ${critical ? "#FF3B3033" : isWorst ? `${TEAL}66` : `${TEAL}22`}`,
+        boxShadow: `0 8px 32px rgba(0,181,165,0.07),inset 0 1px 0 rgba(255,255,255,0.05)`,
+        borderRadius: 4,
+        overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{ background: critical ? "rgba(255,59,48,0.1)" : "rgba(0,181,165,0.08)", borderBottom: `1px solid ${statusColor}22`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 8, letterSpacing: "0.15em", color: TEAL, marginBottom: 2, fontFamily: MONO }}>PATIENT CHART — DEPT. OF ROASTOLOGY</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#D0EDED", letterSpacing: "0.02em", textTransform: "uppercase" }}>
+              {meta.label}
+              {isWorst && <span style={{ marginLeft: 8, fontSize: 8, color: statusColor, border: `1px solid ${statusColor}44`, padding: "0 5px", fontFamily: MONO }}>WORST</span>}
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 8, color: statusColor, fontFamily: MONO, marginBottom: 1 }}>{statusLabel}</div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: statusColor, lineHeight: 1, fontFamily: MONO }}>{result.score}</div>
+          </div>
+        </div>
+        {/* ECG line animation */}
+        <div style={{ padding: "6px 16px", borderBottom: `1px solid rgba(0,181,165,0.08)` }}>
+          <svg width="100%" height="28" viewBox="0 0 300 28" preserveAspectRatio="none" style={{ display: "block" }}>
+            <motion.polyline
+              points="0,14 20,14 25,4 30,24 35,14 60,14 65,2 70,26 75,14 100,14 105,7 110,21 115,14 140,14 145,2 150,26 155,14 180,14 185,9 190,19 195,14 220,14 225,4 230,24 235,14 260,14 265,2 270,26 275,14 300,14"
+              fill="none" stroke={statusColor} strokeWidth="1.5" strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 1.6, delay: idx * 0.1, ease: "easeInOut" }}
+            />
+          </svg>
+        </div>
+        {/* Clinical notes */}
+        <div style={{ padding: "10px 16px", borderBottom: `1px solid rgba(0,181,165,0.08)` }}>
+          <div style={{ fontSize: 8, color: TEAL, letterSpacing: "0.12em", marginBottom: 5, fontFamily: MONO }}>CLINICAL NOTES:</div>
+          <p style={{ margin: "0 0 8px", fontSize: 12, color: "#B0E4E0", lineHeight: 1.65, borderLeft: `2px solid ${statusColor}`, paddingLeft: 9 }}>{result.summary}</p>
+          <div style={{ padding: "5px 8px", background: `rgba(0,181,165,0.04)`, border: `1px solid ${statusColor}22`, borderRadius: 2 }}>
+            <div style={{ fontSize: 9, color: statusColor, fontFamily: MONO }}>
+              PROGNOSIS: {critical ? "CRITICAL — IMMEDIATE INTERVENTION REQUIRED" : guarded ? "GUARDED — TREATMENT PLAN RECOMMENDED" : "STABLE — ROUTINE MAINTENANCE ADVISED"}
+            </div>
+          </div>
+        </div>
+        {/* Rx findings */}
+        <AnimatePresence>
+          {open && (
+            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.25 }} style={{ overflow: "hidden" }}>
+              <div style={{ padding: "10px 16px 12px" }}>
+                <div style={{ fontSize: 8, color: TEAL, letterSpacing: "0.12em", marginBottom: 8, fontFamily: MONO }}>Rx — TREATMENT ORDERS ({result.findings.length}):</div>
+                {result.findings.map((f, i) => {
+                  const fc = f.severity === "critical" ? "#FF3B30" : f.severity === "high" ? "#FF9F0A" : f.severity === "medium" ? "#FFD60A" : TEAL;
+                  return (
+                    <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      style={{ marginBottom: 9, padding: "7px 9px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(0,181,165,0.1)", borderRadius: 2 }}>
+                      <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 3 }}>
+                        <span style={{ fontSize: 7, color: fc, fontFamily: MONO, letterSpacing: "0.08em" }}>[{f.severity.toUpperCase()}]</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#C0EDED" }}>{f.title}</span>
+                      </div>
+                      {f.quote && <div style={{ fontSize: 10, color: "#4A8A87", fontStyle: "italic", marginBottom: 3 }}>"{f.quote}"</div>}
+                      <div style={{ fontSize: 9, color: "#6A9E9C", fontFamily: MONO }}><span style={{ color: TEAL }}>Rx → </span>{f.action}</div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", background: "transparent", border: "none", borderTop: "1px solid rgba(0,181,165,0.08)", padding: "6px", fontSize: 8, color: "rgba(0,181,165,0.35)", cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: MONO }}>
+          {open ? "▲ close chart" : "▼ open chart"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Roast Card dispatcher — cycles 4 themes by idx ────────────────────── */
+function RoastCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
+  const theme = idx % 4;
+  const props = { result, idx, isWorst };
+  if (theme === 0) return <CrimeSceneCard {...props} />;
+  if (theme === 1) return <HackerCard {...props} />;
+  if (theme === 2) return <BreakingNewsCard {...props} />;
+  return <MedicalCard {...props} />;
 }
 
 /* ─── Skeleton — industrial terminal ─────────────────────────────────────── */
