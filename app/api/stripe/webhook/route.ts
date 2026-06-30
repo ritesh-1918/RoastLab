@@ -1,10 +1,10 @@
 /**
  * POST /api/stripe/webhook
- * Verifies Stripe signature and acks. Payment authorization is handled via
- * the redirect URL (?tier=full&paid=1) — no DB write needed here.
+ * Verifies Stripe signature, updates Clerk user metadata on successful payment.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { clerkClient } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -30,7 +30,22 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    console.log('[webhook] checkout.session.completed', session.id, 'siteUrl:', session.metadata?.siteUrl);
+    const userId = session.metadata?.userId;
+    const plan = (session.metadata?.plan ?? 'full') as string;
+
+    console.log('[webhook] checkout.session.completed', session.id, { userId, plan });
+
+    if (userId) {
+      try {
+        const clerk = await clerkClient();
+        await clerk.users.updateUserMetadata(userId, {
+          publicMetadata: { plan },
+        });
+        console.log('[webhook] updated Clerk metadata for', userId, '→ plan:', plan);
+      } catch (e) {
+        console.error('[webhook] failed to update Clerk metadata:', e);
+      }
+    }
   }
 
   return NextResponse.json({ received: true });

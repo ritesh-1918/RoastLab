@@ -107,6 +107,25 @@ export async function getUserStats(userId: string) {
   }
 }
 
+export async function getAuditById(id: string): Promise<AuditRow | null> {
+  const sql = getDb();
+  if (!sql) return null;
+  try {
+    await initSchema();
+    const rows = await sql`
+      SELECT id, user_id, url, score, tier, dimensions, created_at
+      FROM audits WHERE id = ${id} LIMIT 1
+    ` as unknown as AuditRow[];
+    return rows[0] ?? null;
+  } catch (e) {
+    console.error('[db] getAuditById error:', e);
+    return null;
+  }
+}
+
+// alias used by /api/audit/[id]
+export const getAuditWithDimensions = getAuditById;
+
 export async function getAllAudits(limit = 50): Promise<AuditRow[]> {
   const sql = getDb();
   if (!sql) return [];

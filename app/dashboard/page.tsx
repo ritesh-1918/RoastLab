@@ -218,7 +218,7 @@ export default async function DashboardPage() {
                   const sc = scoreColor(a.score);
                   const ago = relativeTime(a.created_at);
                   return (
-                    <Link key={a.id} href={`/analyze?url=${encodeURIComponent(a.url)}&tier=${a.tier}`}
+                    <Link key={a.id} href={`/analyze?id=${a.id}`}
                       style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 10, background: '#09090B', border: '1px solid #1E1E28', textDecoration: 'none', transition: 'border-color 150ms' }}
                     >
                       <div style={{ width: 40, height: 40, borderRadius: 8, background: `${sc}15`, border: `1px solid ${sc}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: sc, flexShrink: 0 }}>

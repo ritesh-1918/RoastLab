@@ -516,11 +516,12 @@ function AnalyzeContent() {
   const tier = (searchParams.get("tier") ?? "free") as "free" | "full";
   const paid = searchParams.get("paid") === "1";
   const upload = searchParams.get("upload") === "1";
+  const cachedId = searchParams.get("id") ?? "";
 
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const isAdmin = user?.emailAddresses.some(e => ADMIN_EMAILS.includes(e.emailAddress)) ?? false;
-  const effectiveTier = isAdmin ? 'full' : tier;
+  const effectiveTier = isAdmin ? 'full' : (cachedTier ?? tier);
 
   const [status, setStatus]   = useState("warming up the roast machine…");
   const [dims, setDims]       = useState<DimensionResult[]>([]);
@@ -528,16 +529,36 @@ function AnalyzeContent() {
   const [score, setScore]     = useState<number | null>(null);
   const [error, setError]     = useState<string | null>(null);
   const [shot, setShot]       = useState<string | null>(null);
+  const [cachedUrl, setCachedUrl] = useState("");
   const [uploadName, setUploadName] = useState<string | null>(null);
   const [taunt, setTaunt]     = useState(0);
   const [gated, setGated]     = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [cachedTier, setCachedTier] = useState<"free" | "full" | null>(null);
   const started = useRef(false);
+
+  // Load cached audit from DB when ?id= is present
+  useEffect(() => {
+    if (!cachedId || started.current) return;
+    started.current = true;
+    fetch(`/api/audit/${cachedId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { url: string; score: number; tier: string; dimensions: DimensionResult[] } | null) => {
+        if (!data) { setError("Audit not found."); return; }
+        setCachedUrl(data.url);
+        setCachedTier((data.tier === 'full' ? 'full' : 'free') as "free" | "full");
+        setDims(data.dimensions as DimensionResult[]);
+        setScore(data.score);
+        setDone(true);
+      })
+      .catch(() => setError("Failed to load cached audit."));
+  }, [cachedId]);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (started.current) return;
     if (!upload && !url) return;
+    if (cachedId) return; // handled by cachedId useEffect
 
     // Session gate: 1 free audit per session without sign-in
     if (!isSignedIn && !paid) {
@@ -612,14 +633,14 @@ function AnalyzeContent() {
     if (!score) return;
     setPdfLoading(true);
     import("@/lib/generate-pdf").then(({ generateRoastPDF }) => {
-      generateRoastPDF({ url: upload ? (uploadName ?? "screenshot") : url, score, dims });
+      generateRoastPDF({ url: upload ? (uploadName ?? "screenshot") : (cachedUrl || url), score, dims });
       setPdfLoading(false);
     }).catch(() => setPdfLoading(false));
   }
 
   if (gated) return <AuthGate onSignIn={() => { setGated(false); }} />;
 
-  if (!url && !upload) return (
+  if (!url && !upload && !cachedId) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
         <p style={{ color: "#5A5A80", marginBottom: 12, fontSize: 14 }}>No URL or screenshot provided.</p>
@@ -658,8 +679,8 @@ function AnalyzeContent() {
           <span style={{ fontSize: 14 }}>🖼️</span> {uploadName ?? "uploaded screenshot"}
         </div>
       ) : (
-        <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#DDDDF0", textDecoration: "none", fontFamily: "monospace", marginBottom: 20, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {url} <ExternalLink size={10} style={{ color: "#3A3A5E", flexShrink: 0 }}/>
+        <a href={cachedUrl || url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#DDDDF0", textDecoration: "none", fontFamily: "monospace", marginBottom: 20, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {cachedUrl || url} <ExternalLink size={10} style={{ color: "#3A3A5E", flexShrink: 0 }}/>
         </a>
       )}
 

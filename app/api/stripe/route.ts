@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
+    // Get userId so webhook can update Clerk metadata after payment
+    const { userId } = await auth();
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://getroastlab.vercel.app';
     const { priceId, mode } = PLANS[plan];
 
@@ -39,9 +43,9 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode,
       line_items: [{ price: priceId, quantity: 1 }],
-      metadata: { plan, ...(siteUrl ? { siteUrl } : {}) },
+      metadata: { plan, userId: userId ?? '', ...(siteUrl ? { siteUrl } : {}) },
       success_url: `${appUrl}${successPath}`,
-      cancel_url: `${appUrl}/#pricing`,
+      cancel_url: `${appUrl}/dashboard/billing`,
       allow_promotion_codes: true,
     });
 
