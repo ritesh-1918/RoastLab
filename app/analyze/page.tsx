@@ -776,7 +776,6 @@ function AnalyzeContent() {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const isAdmin = user?.emailAddresses.some(e => ADMIN_EMAILS.includes(e.emailAddress)) ?? false;
-  const effectiveTier = isAdmin ? 'full' : (cachedTier ?? tier);
 
   const [status, setStatus]   = useState("warming up the roast machine…");
   const [dims, setDims]       = useState<DimensionResult[]>([]);
@@ -790,6 +789,8 @@ function AnalyzeContent() {
   const [gated, setGated]     = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [cachedTier, setCachedTier] = useState<"free" | "full" | null>(null);
+
+  const effectiveTier = isAdmin ? 'full' : (cachedTier ?? tier);
   const started = useRef(false);
 
   // Load cached audit from DB when ?id= is present
@@ -807,7 +808,7 @@ function AnalyzeContent() {
         setDone(true);
       })
       .catch(() => setError("Failed to load cached audit."));
-  }, [cachedId]);
+  }, [cachedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isLoaded) return;
