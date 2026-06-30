@@ -65,7 +65,7 @@ export function getProviders(): Provider[] {
   });
 }
 
-/** True when worth trying next provider (rate limit, quota, server error, model not found). */
+/** True when worth trying next provider (rate limit, quota, server error, model not found, network). */
 export function isRetryableError(err: unknown): boolean {
   if (err instanceof OpenAI.APIError) {
     // 403 = quota exhausted on free tier (OpenRouter free models)
@@ -74,7 +74,8 @@ export function isRetryableError(err: unknown): boolean {
     // 5xx = server error
     return err.status === 403 || err.status === 404 || err.status === 429 || err.status >= 500;
   }
-  return false;
+  // Network errors, timeouts, DNS failures — always retry next provider
+  return true;
 }
 
 /**
