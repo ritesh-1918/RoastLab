@@ -24,18 +24,7 @@ function makeClient(baseURL: string, apiKey: string): OpenAI {
  */
 export function getProviders(): Provider[] {
   return [
-    {
-      name: 'openrouter-1',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
-      model: 'meta-llama/llama-4-scout:free',
-      supportsVision: true,
-    },
-    {
-      name: 'openrouter-2',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
-      model: 'meta-llama/llama-4-maverick:free',
-      supportsVision: true,
-    },
+    // Groq first — confirmed working, fast, free tier with vision
     {
       name: 'groq-1',
       client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_1 ?? ''),
@@ -48,8 +37,21 @@ export function getProviders(): Provider[] {
       model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
       supportsVision: true,
     },
+    // OpenRouter free fallback
     {
-      // Gemini via OpenAI-compatible endpoint (Google AI Studio key)
+      name: 'openrouter-1',
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
+      model: 'meta-llama/llama-4-scout:free',
+      supportsVision: true,
+    },
+    {
+      name: 'openrouter-2',
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
+      model: 'meta-llama/llama-4-maverick:free',
+      supportsVision: true,
+    },
+    // Gemini last resort
+    {
       name: 'gemini-1',
       client: makeClient(
         'https://generativelanguage.googleapis.com/v1beta/openai/',
