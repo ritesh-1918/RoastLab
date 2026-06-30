@@ -209,175 +209,190 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
   );
 }
 
-/* ─── BIG verdict hero ───────────────────────────────────────────────────── */
+/* ─── BIG verdict hero — DAMAGE REPORT ──────────────────────────────────── */
 function VerdictHero({ score, dims }: { score: number; dims: DimensionResult[] }) {
   const m = scoreMeta(score);
+  const MONO = "'Courier New', 'Lucida Console', monospace";
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
-      style={{ marginBottom: 36, position: "relative" }}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      style={{ marginBottom: 32, position: "relative",
+        border: `2px solid ${m.color}`,
+        boxShadow: `8px 8px 0 ${m.color}`,
+        background: "#0A0A0A",
+        overflow: "hidden",
+      }}
     >
-      {/* Grade — massive background text */}
-      <div style={{ position: "absolute", right: -10, top: -20, fontSize: 160, fontWeight: 900, color: `${m.color}08`, lineHeight: 1, pointerEvents: "none", userSelect: "none", fontFamily: "system-ui,sans-serif" }}>
-        {m.grade}
+      {/* Top label bar */}
+      <div style={{ background: m.color, padding: "6px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 900, letterSpacing: "0.2em", color: "#000" }}>▶ DAMAGE REPORT</span>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: "#00000088", letterSpacing: "0.1em" }}>ROASTLAB.AI</span>
       </div>
 
-      {/* Score number — huge */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 6 }}>
-        <motion.span
-          initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.34,1.56,0.64,1], delay: 0.1 }}
-          style={{ fontSize: 96, fontWeight: 900, lineHeight: 0.9, color: m.color, letterSpacing: "-0.04em", fontFamily: "system-ui,sans-serif", filter: `drop-shadow(0 0 30px ${m.color}44)` }}
-        >
-          {score}
-        </motion.span>
-        <div style={{ paddingBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3A3A5E", marginBottom: 2 }}>/ 100</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#3A3A5E" }}>ROAST SCORE</div>
+      <div style={{ padding: "24px 24px 20px", position: "relative" }}>
+        {/* Ghost grade watermark */}
+        <div style={{ position: "absolute", right: 12, top: 8, fontSize: 140, fontWeight: 900, color: `${m.color}10`, lineHeight: 1, pointerEvents: "none", userSelect: "none", fontFamily: "system-ui,sans-serif", transform: "rotate(12deg)" }}>
+          {m.grade}
         </div>
-      </div>
 
-      {/* Verdict line */}
-      <motion.p initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.4 }}
-        style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 900, color: "#F0EFF8", lineHeight: 1.1, letterSpacing: "-0.025em" }}>
-        {m.verdict}
-      </motion.p>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-        style={{ margin: "0 0 20px", fontSize: 13, color: "#4A4A6E", fontStyle: "italic" }}>
-        {m.vibe}
-      </motion.p>
+        {/* Score + /100 */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginBottom: 12 }}>
+          <motion.span
+            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: [0.16,1,0.3,1], delay: 0.1 }}
+            style={{ fontSize: 108, fontWeight: 900, lineHeight: 0.85, color: m.color, letterSpacing: "-0.05em", fontFamily: "system-ui,sans-serif" }}
+          >
+            {score}
+          </motion.span>
+          <div style={{ paddingBottom: 10, fontFamily: MONO }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#333" }}>/100</div>
+            <div style={{ fontSize: 10, color: "#444", letterSpacing: "0.12em", textTransform: "uppercase" }}>roast score</div>
+          </div>
+        </div>
 
-      {/* Dim score pills row */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {dims.map(d => {
-          const meta = DIM[d.dimension];
-          const c = d.score >= 65 ? "#32D74B" : d.score >= 40 ? "#FFD60A" : "#FF2D55";
-          return (
-            <motion.span key={d.dimension}
-              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + dims.indexOf(d) * 0.05 }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: `${c}10`, border: `1px solid ${c}22`, fontSize: 11, color: c, fontWeight: 700 }}
-            >
-              {meta?.emoji} <span style={{ color: "#4A4A6E", fontWeight: 400 }}>{meta?.label}</span> {d.score}
-            </motion.span>
-          );
-        })}
+        {/* Red divider */}
+        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.3, duration: 0.4 }} style={{ height: 2, background: m.color, marginBottom: 14, transformOrigin: "left" }} />
+
+        {/* Verdict + vibe */}
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}
+          style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 900, color: "#F0F0F0", letterSpacing: "-0.02em", textTransform: "uppercase" }}>
+          {m.verdict}
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          style={{ margin: "0 0 20px", fontSize: 11, color: "#444", fontFamily: MONO }}>
+          $ {m.vibe}
+        </motion.p>
+
+        {/* Dimension progress bars */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {dims.map((d, i) => {
+            const meta = DIM[d.dimension];
+            const c = d.score >= 65 ? "#32D74B" : d.score >= 40 ? "#FFD60A" : "#FF2D55";
+            return (
+              <motion.div key={d.dimension}
+                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.45 + i * 0.04 }}
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <span style={{ width: 86, fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#333", fontFamily: MONO, flexShrink: 0 }}>
+                  {meta?.label?.slice(0, 12)}
+                </span>
+                <div style={{ flex: 1, height: 3, background: "#1A1A1A", position: "relative", overflow: "hidden" }}>
+                  <motion.div
+                    initial={{ width: 0 }} animate={{ width: `${d.score}%` }}
+                    transition={{ duration: 0.7, delay: 0.5 + i * 0.04, ease: [0.16,1,0.3,1] }}
+                    style={{ height: "100%", background: c, position: "absolute", top: 0, left: 0 }}
+                  />
+                </div>
+                <span style={{ width: 24, fontSize: 10, fontWeight: 900, color: c, textAlign: "right", fontFamily: MONO }}>
+                  {d.score}
+                </span>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </motion.div>
   );
 }
 
-/* ─── Single finding ─────────────────────────────────────────────────────── */
+/* ─── Single finding — evidence entry ───────────────────────────────────── */
 function Finding({ f, i }: { f: Finding; i: number }) {
   const s = SEV[f.severity];
+  const MONO = "'Courier New', 'Lucida Console', monospace";
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: i * 0.06 }}
-      style={{ marginBottom: 12 }}
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, delay: i * 0.05 }}
+      style={{ marginBottom: 14, borderLeft: `3px solid ${s.color}`, paddingLeft: 14 }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        {/* Left accent line */}
-        <div style={{ width: 2.5, minHeight: 40, borderRadius: 2, background: s.color, flexShrink: 0, marginTop: 3, boxShadow: `0 0 6px ${s.color}66` }}/>
-        <div style={{ flex: 1 }}>
-          {/* Severity + title */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 4, background: s.bg, color: s.color }}>
-              {s.label}
-            </span>
-            <span style={{ fontSize: 13.5, fontWeight: 800, color: "#DDDDF0", lineHeight: 1.3 }}>{f.title}</span>
-          </div>
-          {/* Quote block */}
-          {f.quote && (
-            <div style={{ margin: "0 0 7px", padding: "8px 12px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 12, fontStyle: "italic", color: "#5A5A80", lineHeight: 1.55 }}>
-              <span style={{ color: s.color, fontWeight: 900, fontStyle: "normal" }}>❝ </span>{f.quote}<span style={{ color: s.color, fontWeight: 900, fontStyle: "normal" }}> ❞</span>
-            </div>
-          )}
-          {/* Fix */}
-          <p style={{ margin: 0, fontSize: 12, color: "#4A4A6E", lineHeight: 1.5 }}>
-            <span style={{ color: s.color, fontWeight: 800, fontSize: 11 }}>FIX → </span>{f.action}
-          </p>
-        </div>
+      {/* Severity tag + title */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", padding: "2px 7px", border: `1px solid ${s.color}`, color: s.color, fontFamily: MONO }}>
+          {f.severity.toUpperCase()}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "#E0E0E0", lineHeight: 1.3 }}>{f.title}</span>
       </div>
+      {/* Quote */}
+      {f.quote && (
+        <div style={{ margin: "0 0 6px", padding: "6px 10px", background: "#0A0A0A", borderLeft: `2px solid ${s.color}44`, fontSize: 11, fontStyle: "italic", color: "#555", lineHeight: 1.5, fontFamily: MONO }}>
+          "{f.quote}"
+        </div>
+      )}
+      {/* Fix */}
+      <p style={{ margin: 0, fontSize: 11, color: "#555", lineHeight: 1.5, fontFamily: MONO }}>
+        <span style={{ color: s.color, fontWeight: 900 }}>FIX → </span>{f.action}
+      </p>
     </motion.div>
   );
 }
 
-/* ─── Roast Card ─────────────────────────────────────────────────────────── */
+/* ─── Roast Card — hard-edged evidence card ──────────────────────────────── */
 function RoastCard({ result, idx, isWorst }: { result: DimensionResult; idx: number; isWorst?: boolean }) {
   const [open, setOpen] = useState(true);
   const meta = DIM[result.dimension] ?? { label: result.dimension, emoji: "🔥", color: "#FF2D55" };
   const sm = scoreMeta(result.score);
+  const MONO = "'Courier New', 'Lucida Console', monospace";
+  const borderCol = isWorst ? "#E8334A" : "#222";
+  const shadowCol = isWorst ? "#E8334A" : "#1A1A1A";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: idx * 0.12, ease: [0.16,1,0.3,1] }}
-      style={{ marginBottom: isWorst ? 24 : 16 }}
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.16,1,0.3,1] }}
+      style={{ marginBottom: 20 }}
     >
-      {isWorst && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#FF2D55", padding: "3px 10px", borderRadius: 6, background: "#FF2D5515", border: "1px solid #FF2D5530" }}>
-            ☠️ biggest L — this is the problem
-          </span>
-        </div>
-      )}
-      {/* Card */}
       <div style={{
-        borderRadius: 18,
-        border: isWorst ? "1px solid #FF2D5540" : "1px solid rgba(255,255,255,0.07)",
+        border: `2px solid ${borderCol}`,
+        boxShadow: `6px 6px 0 ${shadowCol}`,
+        background: isWorst ? "#130508" : "#0D0D0D",
         overflow: "hidden",
-        background: isWorst ? "linear-gradient(160deg, #1A0A0F 0%, #100812 100%)" : "linear-gradient(160deg, #131328 0%, #0C0C1A 100%)",
-        boxShadow: isWorst ? `0 4px 32px rgba(255,45,85,0.18), inset 0 1px 0 rgba(255,255,255,0.04)` : `0 2px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)`,
-        transform: isWorst ? "scale(1.01)" : "scale(1)",
       }}>
-        {/* Colored top border */}
-        <div style={{ height: 2, background: `linear-gradient(90deg, ${meta.color} 0%, ${meta.color}44 100%)` }}/>
-
-        {/* Header row */}
-        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", padding: "18px 20px 14px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 14, textAlign: "left" }}>
-          {/* Dim icon box */}
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: `${meta.color}14`, border: `1px solid ${meta.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-            {meta.emoji}
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-              <span style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: meta.color }}>
-                {meta.label}
+        {/* Header bar */}
+        <button onClick={() => setOpen(v => !v)}
+          style={{ width: "100%", background: isWorst ? "#1A0609" : "#111", border: "none", borderBottom: `1px solid ${borderCol}40`, cursor: "pointer", padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, textAlign: "left" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+            {/* Index tag */}
+            <span style={{ fontFamily: MONO, fontSize: 10, color: "#333", letterSpacing: "0.05em", flexShrink: 0 }}>
+              [{String(idx + 1).padStart(2, "0")}]
+            </span>
+            {/* Dim label */}
+            <span style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: isWorst ? "#E8334A" : meta.color, flexShrink: 0 }}>
+              {meta.label}
+            </span>
+            {isWorst && (
+              <span style={{ fontFamily: MONO, fontSize: 9, color: "#E8334A", letterSpacing: "0.06em", border: "1px solid #E8334A44", padding: "1px 6px" }}>
+                WORST
               </span>
-              {/* Score inline pill */}
-              <span style={{ fontSize: 11, fontWeight: 900, padding: "1px 7px", borderRadius: 6, background: `${sm.color}15`, color: sm.color, border: `1px solid ${sm.color}25` }}>
-                {result.score}/100
-              </span>
-              <span style={{ fontSize: 11, color: "#3A3A5E" }}>· {sm.verdict.split(" ")[0]}</span>
-            </div>
-
-            {/* Summary — BIG roast quote */}
-            <p style={{ margin: 0, fontSize: isWorst ? 17 : 14.5, color: isWorst ? "#F0C0C8" : "#C8C8E8", lineHeight: 1.55, fontStyle: "italic", fontWeight: isWorst ? 600 : 400 }}>
-              {result.summary}
-            </p>
+            )}
           </div>
-
-          {/* Score badge */}
-          <div style={{ flexShrink: 0 }}>
-            <ScoreBadge score={result.score} size={50} />
+          {/* Score — big mono number */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 3, flexShrink: 0 }}>
+            <span style={{ fontFamily: MONO, fontSize: 36, fontWeight: 900, lineHeight: 1, color: sm.color }}>{result.score}</span>
+            <span style={{ fontFamily: MONO, fontSize: 12, color: "#333" }}>/100</span>
           </div>
         </button>
+
+        {/* Summary — big italic roast line */}
+        <div style={{ padding: "14px 18px 12px", borderBottom: `1px solid ${borderCol}20` }}>
+          <p style={{ margin: 0, fontSize: 14, fontStyle: "italic", color: isWorst ? "#D0A0A8" : "#AAA", lineHeight: 1.6, borderLeft: `3px solid ${isWorst ? "#E8334A" : meta.color}`, paddingLeft: 12 }}>
+            {result.summary}
+          </p>
+        </div>
 
         {/* Findings */}
         <AnimatePresence>
           {open && (
             <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-              transition={{ duration: 0.28, ease: [0.16,1,0.3,1] }}
+              transition={{ duration: 0.25, ease: [0.16,1,0.3,1] }}
               style={{ overflow: "hidden" }}
             >
-              <div style={{ padding: "0 20px 18px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-                {/* Receipts header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 0 10px" }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#3A3A5E" }}>
-                    the receipts
+              <div style={{ padding: "14px 18px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2A2A2A" }}>
+                    evidence ({result.findings.length} counts)
                   </span>
-                  <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }}/>
-                  <span style={{ fontSize: 9, color: "#2E2E4E" }}>{result.findings.length} counts</span>
+                  <div style={{ flex: 1, height: 1, background: "#1A1A1A" }}/>
                 </div>
                 {result.findings.map((f, i) => <Finding key={i} f={f} i={i} />)}
               </div>
@@ -385,34 +400,42 @@ function RoastCard({ result, idx, isWorst }: { result: DimensionResult; idx: num
           )}
         </AnimatePresence>
 
-        {/* Collapse toggle */}
-        <button onClick={() => setOpen(v => !v)} style={{ width: "100%", padding: "8px", background: "rgba(255,255,255,0.015)", border: "none", borderTop: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", fontSize: 10, color: "#3A3A5E" }}>
-          {open ? "▲ collapse" : "▼ show receipts"}
+        {/* Toggle */}
+        <button onClick={() => setOpen(v => !v)}
+          style={{ width: "100%", padding: "7px", background: "transparent", border: "none", borderTop: `1px solid #1A1A1A`, cursor: "pointer", fontFamily: MONO, fontSize: 9, color: "#2A2A2A", letterSpacing: "0.08em", textTransform: "uppercase" }}
+        >
+          {open ? "▲ collapse" : "▼ show evidence"}
         </button>
       </div>
     </motion.div>
   );
 }
 
-/* ─── Skeleton ───────────────────────────────────────────────────────────── */
+/* ─── Skeleton — industrial terminal ─────────────────────────────────────── */
 function Skeleton({ dimKey }: { dimKey: string }) {
   const meta = DIM[dimKey] ?? { label: dimKey, emoji: "🔥", color: "#FF2D55" };
+  const MONO = "'Courier New', 'Lucida Console', monospace";
   return (
-    <div style={{ marginBottom: 16, borderRadius: 18, border: "1px solid rgba(255,255,255,0.05)", background: "linear-gradient(160deg, #131328 0%, #0C0C1A 100%)", overflow: "hidden" }}>
-      <div style={{ height: 2, background: `${meta.color}33` }}/>
-      <div style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: `${meta.color}0A`, border: `1px solid ${meta.color}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, opacity: 0.4 }}>
-          {meta.emoji}
+    <div style={{ marginBottom: 20, border: "2px solid #1A1A1A", boxShadow: "4px 4px 0 #111", background: "#0A0A0A", overflow: "hidden" }}>
+      <div style={{ padding: "12px 18px", borderBottom: "1px solid #1A1A1A", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontFamily: MONO, fontSize: 9, color: "#222", letterSpacing: "0.05em" }}>[--]</span>
+          <span style={{ fontFamily: MONO, fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#2A2A2A" }}>{meta.label}</span>
         </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2E2E4E" }}>{meta.label}</p>
-          <motion.div style={{ height: 2, borderRadius: 2, background: `${meta.color}33`, transformOrigin: "left" }}
-            animate={{ scaleX: [0.1, 0.9, 0.4, 0.7, 0.2, 0.8] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        <span style={{ fontFamily: MONO, fontSize: 28, fontWeight: 900, color: "#1A1A1A" }}>??</span>
+      </div>
+      <div style={{ padding: "14px 18px" }}>
+        <div style={{ height: 2, background: "#111", marginBottom: 10, overflow: "hidden" }}>
+          <motion.div
+            animate={{ x: ["-100%", "100%"] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+            style={{ height: "100%", width: "40%", background: `linear-gradient(90deg, transparent, ${meta.color}66, transparent)` }}
           />
         </div>
-        <motion.div style={{ width: 44, height: 44, border: `4px solid ${meta.color}22`, borderTopColor: meta.color, borderRadius: "50%" }}
-          animate={{ rotate: 360 }} transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}/>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11, color: "#2A2A2A" }}>
+          <span>$ ANALYZING {meta.label.toUpperCase().replace(" ", "_")}...</span>
+          <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.6, repeat: Infinity }}>█</motion.span>
+        </div>
       </div>
     </div>
   );
@@ -544,7 +567,7 @@ function AnalyzeContent() {
   const [done, setDone]       = useState(false);
   const [score, setScore]     = useState<number | null>(null);
   const [error, setError]     = useState<string | null>(null);
-  const [shot, setShot]       = useState<string | null>(null);
+  const [shots, setShots]     = useState<string[]>([]);
   const [cachedUrl, setCachedUrl] = useState("");
   const [uploadName, setUploadName] = useState<string | null>(null);
   const [taunt, setTaunt]     = useState(0);
@@ -620,8 +643,9 @@ function AnalyzeContent() {
             if (!p.startsWith("data: ")) continue;
             try {
               const ev = JSON.parse(p.slice(6));
-              if (ev.type === "status")     setStatus(ev.payload.message);
-              if (ev.type === "screenshot") setShot(ev.payload.url);
+              if (ev.type === "status")      setStatus(ev.payload.message);
+              if (ev.type === "screenshot")  setShots(prev => prev.includes(ev.payload.url) ? prev : [...prev, ev.payload.url]);
+              if (ev.type === "screenshots") setShots(ev.payload.urls ?? []);
               if (ev.type === "dimension")  setDims(prev => [...prev, ev.payload]);
               if (ev.type === "done") {
                 setScore(ev.payload.overallScore);
@@ -689,63 +713,121 @@ function AnalyzeContent() {
         </div>
       </div>
 
-      {/* URL or upload name */}
-      {upload ? (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#DDDDF0", fontFamily: "monospace", marginBottom: 20 }}>
-          <span style={{ fontSize: 14 }}>🖼️</span> {uploadName ?? "uploaded screenshot"}
-        </div>
-      ) : (
-        <a href={cachedUrl || url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "#DDDDF0", textDecoration: "none", fontFamily: "monospace", marginBottom: 20, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {cachedUrl || url} <ExternalLink size={10} style={{ color: "#3A3A5E", flexShrink: 0 }}/>
-        </a>
-      )}
+      {/* URL or upload name — mono terminal style */}
+      {(() => {
+        const MONO = "'Courier New','Lucida Console',monospace";
+        return upload ? (
+          <div style={{ fontFamily: MONO, fontSize: 11, color: "#555", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: "#E8334A" }}>$</span> analyzing uploaded screenshot
+          </div>
+        ) : (
+          <div style={{ fontFamily: MONO, fontSize: 11, color: "#555", marginBottom: 16, display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
+            <span style={{ color: "#E8334A", flexShrink: 0 }}>$</span>
+            <a href={cachedUrl || url} target="_blank" rel="noopener noreferrer"
+              style={{ color: "#444", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#E8334A")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#444")}
+            >
+              {cachedUrl || url}
+            </a>
+            <ExternalLink size={9} style={{ color: "#333", flexShrink: 0 }}/>
+          </div>
+        );
+      })()}
 
-      {/* Screenshot */}
-      <AnimatePresence>{shot && <SiteFrame imgUrl={shot} siteUrl={url} />}</AnimatePresence>
+      {/* Screenshots filmstrip */}
+      {shots.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
+          style={{ marginBottom: 24 }}
+        >
+          {shots.length === 1 ? (
+            /* Single screenshot — standard browser frame */
+            <SiteFrame imgUrl={shots[0]} siteUrl={url} />
+          ) : (
+            /* Multi-screenshot filmstrip */
+            <div style={{ border: "2px solid #1A1A1A", boxShadow: "4px 4px 0 #111", overflow: "hidden" }}>
+              {/* Fake address bar */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#111", borderBottom: "1px solid #1A1A1A" }}>
+                {["#FF5F57","#FFBD2E","#27C93F"].map((c,i) => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: c }}/>)}
+                <div style={{ flex: 1, marginLeft: 4, background: "#0A0A0A", padding: "2px 8px", fontSize: 9, color: "#333", fontFamily: "'Courier New',monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {url || "uploaded"}
+                </div>
+                <span style={{ fontFamily: "'Courier New',monospace", fontSize: 8, color: "#2A2A2A", letterSpacing: "0.05em" }}>{shots.length} CAPTURES</span>
+              </div>
+              {/* Horizontal filmstrip */}
+              <div style={{ display: "flex", gap: 2, background: "#080808", overflowX: "auto", padding: 8 }}>
+                {shots.map((s, i) => (
+                  <div key={i} style={{ flexShrink: 0, position: "relative", border: i === 0 ? "2px solid #E8334A" : "1px solid #1A1A1A" }}>
+                    <div style={{ position: "absolute", top: 4, left: 4, fontFamily: "'Courier New',monospace", fontSize: 8, background: "#000", color: i === 0 ? "#E8334A" : "#333", padding: "1px 5px", zIndex: 1, letterSpacing: "0.05em" }}>
+                      {i === 0 ? "TOP" : i === 1 ? "FOLD" : "FULL"}
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s} alt={`capture ${i+1}`} style={{ width: i === 2 ? 130 : 180, height: 120, objectFit: "cover", objectPosition: "top", display: "block" }} loading="lazy"/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Big verdict */}
       <AnimatePresence>
         {done && score !== null && <VerdictHero score={score} dims={dims} />}
       </AnimatePresence>
 
-      {/* Live status */}
-      {!done && !error && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 20, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10 }}>
-          <motion.div style={{ width: 12, height: 12, border: "2px solid rgba(255,45,85,0.15)", borderTopColor: "#FF2D55", borderRadius: "50%", flexShrink: 0 }}
-            animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}/>
-          <AnimatePresence mode="wait">
-            <motion.span key={dims.length === 0 ? "s" : taunt}
-              initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              style={{ fontSize: 12, color: "#5A5A80" }}
-            >
-              {dims.length === 0 ? status : TAUNTS[taunt]}
-            </motion.span>
-          </AnimatePresence>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 3 }}>
-            {[0,1,2].map(i => (
-              <motion.div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: "#FF2D55" }}
-                animate={{ opacity: [0.1, 1, 0.1] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}/>
-            ))}
+      {/* Live status — terminal progress bar */}
+      {!done && !error && (() => {
+        const MONO = "'Courier New','Lucida Console',monospace";
+        const total = effectiveTier === "full" ? 9 : 3;
+        const pct = shots.length > 0 ? Math.max(10, Math.round((dims.length / total) * 100)) : 5;
+        const statusText = dims.length === 0 ? status : TAUNTS[taunt];
+        return (
+          <div style={{ marginBottom: 20, border: "1px solid #1A1A1A", background: "#080808" }}>
+            {/* Progress bar */}
+            <div style={{ height: 3, background: "#111", overflow: "hidden" }}>
+              <motion.div
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                style={{ height: "100%", background: "#E8334A" }}
+              />
+            </div>
+            {/* Terminal line */}
+            <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, color: "#E8334A", flexShrink: 0 }}>$</span>
+              <AnimatePresence mode="wait">
+                <motion.span key={statusText}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ fontFamily: MONO, fontSize: 11, color: "#444", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                >
+                  {statusText.toUpperCase()}
+                </motion.span>
+              </AnimatePresence>
+              <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.7, repeat: Infinity }}
+                style={{ fontFamily: MONO, fontSize: 11, color: "#E8334A", flexShrink: 0 }}>█</motion.span>
+              <span style={{ fontFamily: MONO, fontSize: 10, color: "#2A2A2A", flexShrink: 0 }}>{dims.length}/{total}</span>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Error */}
       {error && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ padding: "12px 16px", marginBottom: 20, borderRadius: 10, background: "rgba(255,45,85,0.06)", border: "1px solid rgba(255,45,85,0.18)", fontSize: 13, color: "#FF6B8A", lineHeight: 1.5 }}>
-          ☠️ {error}
+          style={{ padding: "12px 16px", marginBottom: 20, border: "2px solid #E8334A", boxShadow: "4px 4px 0 #E8334A", background: "#0D0305", fontFamily: "'Courier New',monospace", fontSize: 12, color: "#FF6B8A", lineHeight: 1.5 }}>
+          <span style={{ color: "#E8334A", fontWeight: 900 }}>ERROR: </span>{error}
         </motion.div>
       )}
 
-      {/* Roasts section label */}
+      {/* Roasts section label — terminal divider */}
       {(dims.length > 0 || (!done && !error)) && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#2E2E4E" }}>
-            {done ? "🔥 the full damage" : "📡 live roasting…"}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ height: 1, background: "#1A1A1A", flex: "0 0 20px" }}/>
+          <span style={{ fontFamily: "'Courier New',monospace", fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.15em", color: "#2A2A2A", whiteSpace: "nowrap" }}>
+            {done ? "// FULL DAMAGE REPORT" : "// LIVE ANALYSIS"}
           </span>
-          <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }}/>
+          <div style={{ height: 1, background: "#1A1A1A", flex: 1 }}/>
         </div>
       )}
 

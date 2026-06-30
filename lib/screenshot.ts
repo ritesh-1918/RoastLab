@@ -5,9 +5,9 @@ export async function captureScreenshot(url: string): Promise<{
   mimeType: 'image/jpeg';
   screenshotUrl: string;
 }> {
-  // Primary: thum.io — no API key, free, reliable
+  // Primary: thum.io — no API key, free, reliable. 5s wait before capture.
   try {
-    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/viewportwait/6000/${url}`;
+    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/viewportwait/5000/${url}`;
     const res = await fetch(thumUrl, {
       headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
       signal: AbortSignal.timeout(28_000),
@@ -24,7 +24,7 @@ export async function captureScreenshot(url: string): Promise<{
   }
 
   // Fallback: microlink
-  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80&screenshot.waitForTimeout=6000`;
+  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80&screenshot.waitForTimeout=5000`;
   const res = await fetch(apiUrl, {
     headers: process.env.MICROLINK_API_KEY ? { 'x-api-key': process.env.MICROLINK_API_KEY } : {},
     signal: AbortSignal.timeout(35_000),
@@ -44,6 +44,39 @@ export async function captureScreenshot(url: string): Promise<{
   const buffer = await imgRes.arrayBuffer();
   const base64 = Buffer.from(buffer).toString('base64');
   return { base64, mimeType: 'image/jpeg', screenshotUrl };
+}
+
+/**
+ * Capture 3 screenshots at different scroll depths (top, mid, bottom).
+ * All concurrent. Returns array of public image URLs.
+ * Max ~20s total.
+ */
+export async function captureMultipleScreenshots(url: string): Promise<string[]> {
+  const thumBase = 'https://image.thum.io/get/width/1280/noanimate';
+
+  const thumShot = async (params: string): Promise<string | null> => {
+    try {
+      const u = `${thumBase}/${params}/${url}`;
+      const res = await fetch(u, {
+        headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
+        signal: AbortSignal.timeout(22_000),
+      });
+      if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      return buf.byteLength > 8000 ? u : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 3 shots: viewport top (5s wait), below-fold tall crop (8s wait), full page (10s wait)
+  const [top, tall, full] = await Promise.all([
+    thumShot('crop/900/viewportwait/5000'),
+    thumShot('crop/1800/viewportwait/8000'),
+    thumShot('viewportwait/10000/fullpage'),
+  ]);
+
+  return [top, tall, full].filter(Boolean) as string[];
 }
 
 /**

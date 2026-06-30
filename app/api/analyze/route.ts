@@ -7,7 +7,7 @@
 import { NextRequest } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { runAudit, FREE_DIMENSIONS, DIMENSIONS, type DimensionResult } from '@/lib/ai/analyze';
-import { captureScreenshot, crawlPage, extractSiteData, crawlSubpages } from '@/lib/screenshot';
+import { captureScreenshot, captureMultipleScreenshots, crawlPage, extractSiteData, crawlSubpages } from '@/lib/screenshot';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { saveAudit } from '@/lib/db';
 import { sendAuditEmail } from '@/lib/email';
@@ -98,11 +98,12 @@ export async function POST(req: NextRequest) {
           const isPremium = tier === 'full' || paid;
 
           if (isPremium) {
-            send({ type: 'status', payload: { message: 'Deep crawl initiated — analyzing every pixel of your crime scene…' } });
+            send({ type: 'status', payload: { message: 'Deep crawl initiated — scanning every pixel of your crime scene…' } });
 
-            // Full parallel deep crawl: screenshot + main crawl + HTML data + subpages
-            const [captured, mainCrawl, siteData, subpageData] = await Promise.all([
+            // Full parallel deep crawl: 3 screenshots + main crawl + HTML data + subpages
+            const [captured, multiShots, mainCrawl, siteData, subpageData] = await Promise.all([
               captureScreenshot(url!),
+              captureMultipleScreenshots(url!),
               crawlPage(url!),
               extractSiteData(url!),
               crawlSubpages(url!),
@@ -110,7 +111,9 @@ export async function POST(req: NextRequest) {
 
             imageBase64 = captured.base64;
             mimeType = captured.mimeType;
-            send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
+            // Emit all screenshot URLs (multi-scroll filmstrip)
+            const allShots = [captured.screenshotUrl, ...multiShots.filter(u => u !== captured.screenshotUrl)];
+            send({ type: 'screenshots', payload: { urls: allShots } });
 
             const parts = [mainCrawl, siteData, subpageData].filter(p => p && p.length > 50);
             pageContent = parts.join('\n\n---\n\n') || undefined;
@@ -126,7 +129,7 @@ export async function POST(req: NextRequest) {
             imageBase64 = captured.base64;
             mimeType = captured.mimeType;
             pageContent = crawled || undefined;
-            send({ type: 'screenshot', payload: { url: captured.screenshotUrl } });
+            send({ type: 'screenshots', payload: { urls: [captured.screenshotUrl] } });
             const contentMsg = pageContent
               ? `Crawled ${pageContent.length} chars of content — loading roast cannon…`
               : 'Screenshot captured — loading roast cannon…';
