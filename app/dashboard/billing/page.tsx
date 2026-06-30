@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
-import { LayoutDashboard, FileText, User, CreditCard, Check } from 'lucide-react';
+import { LayoutDashboard, FileText, User, CreditCard, Check, ExternalLink } from 'lucide-react';
 import { BillingStripeButton } from '@/components/billing-stripe-button';
 
 const NAV = [
