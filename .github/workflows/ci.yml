@@ -26,7 +26,6 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
         env:
-          # Dummy values so Next.js config doesn't crash at check time
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
           CLERK_SECRET_KEY: sk_test_dummy
 
@@ -53,3 +52,16 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
           CLERK_SECRET_KEY: sk_test_dummy
           SKIP_ENV_VALIDATION: true
+          # Dummy keys so SDK modules don't crash at module-init time
+          STRIPE_SECRET_KEY: sk_test_dummy_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          STRIPE_PRICE_PRO: price_dummy
+          STRIPE_PRICE_FULL: price_dummy
+          STRIPE_WEBHOOK_SECRET: whsec_dummy
+          OPENROUTER_KEY_1: sk-or-dummy
+          OPENROUTER_KEY_2: sk-or-dummy
+          GROQ_KEY_1: gsk_dummy
+          GROQ_KEY_2: gsk_dummy
+          GEMINI_API_KEY: dummy
+          RESEND_API_KEY: re_dummy
+          RESEND_FROM_EMAIL: noreply@example.com
+          DATABASE_URL: postgresql://dummy:dummy@dummy/dummy
