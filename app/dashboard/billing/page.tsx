@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
-import { LayoutDashboard, FileText, User, CreditCard, ExternalLink, Check, ArrowRight } from 'lucide-react';
+import { LayoutDashboard, FileText, User, CreditCard, Check } from 'lucide-react';
+import { BillingStripeButton } from '@/components/billing-stripe-button';
 
 const NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -29,7 +30,7 @@ const PLANS = [
     features: ['All 9 dimensions', '"Fix These First" priority list', 'UX, Mobile, SEO, Performance', 'Accessibility audit', 'PDF export'],
     current: false,
     cta: 'Buy report',
-    ctaHref: '/#pricing',
+    ctaHref: null,
   },
 ];
 
@@ -83,9 +84,7 @@ export default async function BillingPage() {
               <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', margin: 0 }}>Free</p>
               <p style={{ fontSize: 13, color: '#8B8BA3', margin: '4px 0 0' }}>3 audits · 3 dimensions each</p>
             </div>
-            <Link href="/#pricing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', background: '#E8334A', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-              Upgrade <ArrowRight size={13} />
-            </Link>
+            <BillingStripeButton plan="full" />
           </div>
 
           {/* Plans */}
@@ -124,14 +123,14 @@ export default async function BillingPage() {
                     </li>
                   ))}
                 </ul>
-                {plan.ctaHref ? (
-                  <Link href={plan.ctaHref} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 16px', background: '#E8334A', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none', marginTop: 'auto', letterSpacing: '-0.01em' }}>
-                    {plan.cta} <ArrowRight size={13} />
-                  </Link>
-                ) : (
-                  <button disabled style={{ padding: '10px 16px', background: '#1E1E28', color: '#4A4A62', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', marginTop: 'auto', cursor: 'not-allowed' }}>
+                {plan.current ? (
+                  <button disabled style={{ padding: '10px 16px', background: '#1E1E28', color: '#4A4A62', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', marginTop: 'auto', cursor: 'not-allowed', width: '100%' }}>
                     {plan.cta}
                   </button>
+                ) : (
+                  <div style={{ marginTop: 'auto' }}>
+                    <BillingStripeButton plan="full" />
+                  </div>
                 )}
               </div>
             ))}

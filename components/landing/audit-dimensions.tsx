@@ -53,6 +53,11 @@ export function AuditDimensions() {
                 key={d.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{
+                  y: -4,
+                  borderColor: locked ? '#27273A' : 'rgba(34,197,94,0.35)',
+                  boxShadow: locked ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(34,197,94,0.08)',
+                }}
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ duration: 0.4, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
                 style={{
@@ -62,6 +67,7 @@ export function AuditDimensions() {
                   border: `1px solid ${locked ? '#1E1E28' : 'rgba(34,197,94,0.15)'}`,
                   position: 'relative',
                   opacity: locked ? 0.65 : 1,
+                  cursor: 'default',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>

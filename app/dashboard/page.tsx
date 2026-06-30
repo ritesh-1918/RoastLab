@@ -3,9 +3,10 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo';
 import { UserButton } from '@clerk/nextjs';
-import { LayoutDashboard, FileText, User, CreditCard, ExternalLink, ArrowRight } from 'lucide-react';
+import { LayoutDashboard, FileText, User, CreditCard, ArrowRight } from 'lucide-react';
 import { getUserAudits, getUserStats } from '@/lib/db';
 import { relativeTime, scoreColor } from '@/lib/utils';
+import { QuickAuditInput } from '@/components/dashboard/quick-audit-input';
 
 const NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <Link href="/analyze" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <LogoMark size={24} />
             <span style={{ fontWeight: 900, fontSize: 14, letterSpacing: '-0.04em', color: '#FAFAFA' }}>
               ROAST<span style={{ color: '#E8334A' }}>LAB</span>
@@ -56,7 +57,7 @@ export default async function DashboardPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link
-            href="/"
+            href="/analyze"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
               border: '1px solid #27273A',
             }}
           >
-            New audit <ExternalLink size={11} />
+            New audit
           </Link>
           <UserButton />
         </div>
@@ -177,56 +178,7 @@ export default async function DashboardPage() {
             <h2 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 16px', letterSpacing: '-0.02em' }}>
               Run new audit
             </h2>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  background: '#09090B',
-                  border: '1px solid #27273A',
-                  borderRadius: 8,
-                  padding: '0 14px',
-                }}
-              >
-                <span style={{ fontSize: 12, color: '#4A4A62', fontFamily: 'var(--font-geist-mono), monospace' }}>https://</span>
-                <input
-                  type="url"
-                  placeholder="yoursite.com"
-                  style={{
-                    flex: 1,
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 13,
-                    color: '#FAFAFA',
-                    padding: '11px 0',
-                    fontFamily: 'var(--font-geist-mono), monospace',
-                  }}
-                />
-              </div>
-              <Link
-                href="/"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  padding: '0 18px',
-                  background: '#E8334A',
-                  color: '#fff',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                  letterSpacing: '-0.01em',
-                  minHeight: 42,
-                }}
-              >
-                Analyze <ArrowRight size={13} />
-              </Link>
-            </div>
+            <QuickAuditInput />
           </div>
 
           {/* Recent reports */}
@@ -254,7 +206,7 @@ export default async function DashboardPage() {
                 </div>
                 <p style={{ fontSize: 14, fontWeight: 600, color: '#8B8BA3', margin: '0 0 6px' }}>No reports yet</p>
                 <p style={{ fontSize: 12, color: '#4A4A62', margin: '0 0 20px' }}>Run your first audit to see it here</p>
-                <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: '#E8334A', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+                <Link href="/analyze" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: '#E8334A', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none', letterSpacing: '-0.01em' }}>
                   Roast your first page <ArrowRight size={12} />
                 </Link>
               </div>

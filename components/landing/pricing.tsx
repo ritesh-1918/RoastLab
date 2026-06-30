@@ -100,6 +100,7 @@ function PlanCard({ plan, index }: { plan: typeof PLANS[0]; index: number }) {
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6, boxShadow: plan.highlight ? '0 24px 64px rgba(232,51,74,0.22)' : '0 20px 56px rgba(0,0,0,0.45)' }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.5, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
       style={{
@@ -112,6 +113,7 @@ function PlanCard({ plan, index }: { plan: typeof PLANS[0]; index: number }) {
         gap: 0,
         position: 'relative',
         overflow: 'hidden',
+        cursor: 'default',
       }}
     >
       {/* Animated top border for highlighted plan */}

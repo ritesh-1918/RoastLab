@@ -5,40 +5,44 @@ export async function captureScreenshot(url: string): Promise<{
   mimeType: 'image/jpeg';
   screenshotUrl: string;
 }> {
-  // microlink without embed= returns JSON; with embed= returns raw image (breaks res.json())
-  // fullPage=true captures the entire page height, not just the viewport
-  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.fullPage=true&screenshot.type=jpeg&screenshot.quality=80`;
+  // Primary: thum.io — no API key, free, reliable
+  try {
+    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/${url}`;
+    const res = await fetch(thumUrl, {
+      headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
+      signal: AbortSignal.timeout(28_000),
+    });
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      if (buffer.byteLength > 8000) {
+        const base64 = Buffer.from(buffer).toString('base64');
+        return { base64, mimeType: 'image/jpeg', screenshotUrl: thumUrl };
+      }
+    }
+  } catch {
+    // fall through to microlink
+  }
 
+  // Fallback: microlink
+  const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80`;
   const res = await fetch(apiUrl, {
-    headers: process.env.MICROLINK_API_KEY
-      ? { 'x-api-key': process.env.MICROLINK_API_KEY }
-      : {},
+    headers: process.env.MICROLINK_API_KEY ? { 'x-api-key': process.env.MICROLINK_API_KEY } : {},
+    signal: AbortSignal.timeout(35_000),
   });
 
-  if (!res.ok) {
-    throw new Error(`microlink failed: ${res.status} ${res.statusText}`);
-  }
+  if (!res.ok) throw new Error(`screenshot failed: ${res.status} ${res.statusText}`);
 
-  const json = await res.json() as {
-    status: string;
-    data?: { screenshot?: { url?: string } };
-  };
-
-  if (json.status !== 'success') {
-    throw new Error(`microlink status: ${json.status}`);
-  }
+  const json = await res.json() as { status: string; data?: { screenshot?: { url?: string } } };
+  if (json.status !== 'success') throw new Error(`microlink: ${json.status}`);
 
   const screenshotUrl = json?.data?.screenshot?.url;
-  if (!screenshotUrl) {
-    throw new Error('microlink returned no screenshot URL — site may block headless browsers');
-  }
+  if (!screenshotUrl) throw new Error('no screenshot URL returned — site may block headless browsers');
 
   const imgRes = await fetch(screenshotUrl);
-  if (!imgRes.ok) throw new Error(`Failed to download screenshot: ${imgRes.status}`);
+  if (!imgRes.ok) throw new Error(`screenshot download failed: ${imgRes.status}`);
 
   const buffer = await imgRes.arrayBuffer();
   const base64 = Buffer.from(buffer).toString('base64');
-
   return { base64, mimeType: 'image/jpeg', screenshotUrl };
 }
 

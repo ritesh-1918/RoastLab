@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Globe, Upload, ArrowRight, Target } from "lucide-react";
+import { Globe, Upload, ArrowRight, Target, X } from "lucide-react";
 
 export function Hero() {
   const [tab, setTab] = useState<"url" | "screenshot">("url");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadData, setUploadData] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
   const router = useRouter();
 
   function handleRoast() {
@@ -18,6 +20,18 @@ export function Hero() {
       const target = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
       router.push(`/analyze?url=${encodeURIComponent(target)}`);
     }
+  }
+
+  function handleStartRoasting() {
+    if (!uploadData) return;
+    sessionStorage.setItem("roastlab_upload", JSON.stringify(uploadData));
+    router.push("/analyze?upload=1");
+  }
+
+  function clearFile() {
+    setFile(null);
+    setPreviewUrl(null);
+    setUploadData(null);
   }
 
   return (
@@ -99,7 +113,7 @@ export function Hero() {
           </div>
         </motion.div>
 
-        {/* ROASTLAB wordmark — the brand, front and center */}
+        {/* ROASTLAB wordmark */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,13 +170,7 @@ export function Hero() {
             }}
           >
             {/* Tabs */}
-            <div
-              style={{
-                display: "flex",
-                borderBottom: "1px solid #1E1E28",
-              }}
-              role="tablist"
-            >
+            <div style={{ display: "flex", borderBottom: "1px solid #1E1E28" }} role="tablist">
               {[
                 { key: "url" as const, label: "URL", Icon: Globe },
                 { key: "screenshot" as const, label: "Screenshot", Icon: Upload },
@@ -171,7 +179,7 @@ export function Hero() {
                   key={key}
                   role="tab"
                   aria-selected={tab === key}
-                  onClick={() => setTab(key)}
+                  onClick={() => { setTab(key); clearFile(); }}
                   style={{
                     flex: 1,
                     display: "flex",
@@ -254,63 +262,101 @@ export function Hero() {
 
             {/* Screenshot drop zone */}
             {tab === "screenshot" && (
-              <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                  padding: "36px 24px",
-                  cursor: "pointer",
-                  borderTop: "none",
-                }}
-                aria-label="Upload screenshot"
-              >
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setFile(f);
-                    if (f) {
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        const dataUrl = reader.result as string;
-                        const base64 = dataUrl.split(",")[1];
-                        sessionStorage.setItem(
-                          "roastlab_upload",
-                          JSON.stringify({ base64, mimeType: f.type, name: f.name })
-                        );
-                        router.push("/analyze?upload=1");
-                      };
-                      reader.readAsDataURL(f);
-                    }
-                  }}
-                />
-                <div
+              previewUrl ? (
+                /* Preview state */
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "20px 24px" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewUrl}
+                    alt="Screenshot preview"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: 200,
+                      borderRadius: 8,
+                      objectFit: "contain",
+                      border: "1px solid #27273A",
+                    }}
+                  />
+                  <p style={{ fontSize: 12, color: "#8B8BA3", margin: 0, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {file?.name}
+                  </p>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <button
+                      onClick={handleStartRoasting}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 7,
+                        fontSize: 13, fontWeight: 700, padding: "10px 22px",
+                        borderRadius: 10, border: "none", cursor: "pointer",
+                        background: "#E8334A", color: "#fff", letterSpacing: "-0.01em",
+                      }}
+                    >
+                      Start Roasting <ArrowRight size={13} />
+                    </button>
+                    <button
+                      onClick={clearFile}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        fontSize: 12, color: "#52526A", background: "#1E1E28",
+                        border: "1px solid #27273A", borderRadius: 8,
+                        padding: "9px 12px", cursor: "pointer",
+                      }}
+                    >
+                      <X size={12} /> Change
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Upload state */
+                <label
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: file ? "rgba(232,51,74,0.12)" : "#1E1E28",
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
+                    gap: 10,
+                    padding: "36px 24px",
+                    cursor: "pointer",
                   }}
+                  aria-label="Upload screenshot"
                 >
-                  <Upload size={18} style={{ color: file ? "#E8334A" : "#52526A" }} />
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#FAFAFA", margin: 0 }}>
-                    {file ? file.name : "Drop a screenshot or click to browse"}
-                  </p>
-                  <p style={{ fontSize: 12, color: "#52526A", margin: "4px 0 0" }}>
-                    Figma mocks, live pages, competitor audits — JPG, PNG, WebP
-                  </p>
-                </div>
-              </label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      setFile(f);
+                      if (f) {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const dataUrl = reader.result as string;
+                          const base64 = dataUrl.split(",")[1];
+                          setPreviewUrl(dataUrl);
+                          setUploadData({ base64, mimeType: f.type, name: f.name });
+                        };
+                        reader.readAsDataURL(f);
+                      }
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 40, height: 40, borderRadius: 10,
+                      background: "#1E1E28",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <Upload size={18} style={{ color: "#52526A" }} />
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#FAFAFA", margin: 0 }}>
+                      Drop a screenshot or click to browse
+                    </p>
+                    <p style={{ fontSize: 12, color: "#52526A", margin: "4px 0 0" }}>
+                      Figma mocks, live pages, competitor audits — JPG, PNG, WebP
+                    </p>
+                  </div>
+                </label>
+              )
             )}
           </div>
 
@@ -321,11 +367,7 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.35 }}
             style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 20 }}
           >
-            {[
-              "3 free dimensions",
-              "No signup required",
-              "~60s results",
-            ].map((label) => (
+            {["3 free dimensions", "No signup required", "~60s results"].map((label) => (
               <span
                 key={label}
                 style={{
