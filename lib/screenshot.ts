@@ -56,96 +56,102 @@ export async function captureScreenshot(url: string): Promise<{
  * Section height = 900px, overlap = 150px, so no content falls through the cracks.
  */
 export async function captureMultipleScreenshots(url: string): Promise<string[]> {
-  // Step 1: fetch fullpage from thum.io as binary
-  const thumFullUrl = `https://image.thum.io/get/width/1280/noanimate/viewportwait/8000/fullpage/${url}`;
+  // Wait 15s so Cloudflare/bot-check pages finish loading before capture.
+  // viewportwait=15000 tells thum.io to idle 15s after DOMContentLoaded.
+  const thumFullUrl = `https://image.thum.io/get/width/1280/noanimate/viewportwait/15000/fullpage/${url}`;
 
   let imageBuffer: Buffer | null = null;
 
   try {
     const res = await fetch(thumFullUrl, {
       headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(45_000),
     });
     if (res.ok) {
       const buf = await res.arrayBuffer();
-      if (buf.byteLength > 10_000) imageBuffer = Buffer.from(buf);
+      // Must be >50KB to not be a bot-check page or blank
+      if (buf.byteLength > 50_000) imageBuffer = Buffer.from(buf);
     }
   } catch { /* fall through */ }
 
-  // Step 2: if thum.io failed, try microlink fullpage
+  // Fallback: microlink with long wait
   if (!imageBuffer) {
     try {
-      const mlUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80&screenshot.fullPage=true&screenshot.waitForTimeout=6000`;
+      const mlUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80&screenshot.fullPage=true&screenshot.waitForTimeout=12000`;
       const res = await fetch(mlUrl, {
         headers: process.env.MICROLINK_API_KEY ? { 'x-api-key': process.env.MICROLINK_API_KEY } : {},
-        signal: AbortSignal.timeout(35_000),
+        signal: AbortSignal.timeout(45_000),
       });
       if (res.ok) {
         const json = await res.json() as { status: string; data?: { screenshot?: { url?: string } } };
         if (json.status === 'success' && json.data?.screenshot?.url) {
-          const imgRes = await fetch(json.data.screenshot.url, { signal: AbortSignal.timeout(15_000) });
+          const imgRes = await fetch(json.data.screenshot.url, { signal: AbortSignal.timeout(20_000) });
           if (imgRes.ok) {
             const buf = await imgRes.arrayBuffer();
-            if (buf.byteLength > 10_000) imageBuffer = Buffer.from(buf);
+            if (buf.byteLength > 50_000) imageBuffer = Buffer.from(buf);
           }
         }
       }
     } catch { /* give up */ }
   }
 
-  // Step 3: if we have fullpage image, crop into overlapping sections via Sharp
+  // Crop fullpage into non-overlapping 900px sections via Sharp, upload to Blob
   if (imageBuffer && process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       const meta = await sharp(imageBuffer).metadata();
       const W = meta.width ?? 1280;
       const H = meta.height ?? 900;
       const SECTION_H = 900;
-      const OVERLAP = 150;
 
-      const sections: Buffer[] = [];
+      // Build distinct Y positions — no overlap (prevents duplicate-looking frames)
+      const yPositions: number[] = [];
       let y = 0;
       while (y < H) {
-        const h = Math.min(SECTION_H, H - y);
-        if (h < 100) break; // skip tiny final sliver
-        const section = await sharp(imageBuffer)
-          .extract({ left: 0, top: y, width: W, height: h })
-          .jpeg({ quality: 82 })
-          .toBuffer();
-        sections.push(section);
-        y += SECTION_H - OVERLAP;
-        if (y + OVERLAP >= H) break;
-      }
-      // Always include the full page as last entry if it's small enough
-      if (sections.length > 0 && H <= 8000) {
-        const full = await sharp(imageBuffer).jpeg({ quality: 75 }).toBuffer();
-        sections.push(full);
+        yPositions.push(y);
+        y += SECTION_H;
       }
 
-      // Upload all sections to Vercel Blob in parallel
-      const uploaded = await Promise.all(
-        sections.map((s, i) =>
-          put(`screenshots/section-${i}-${Date.now()}.jpg`, s, { access: 'public', contentType: 'image/jpeg' })
-            .then(b => b.url)
-            .catch(() => null)
-        )
-      );
-      const urls = uploaded.filter(Boolean) as string[];
-      if (urls.length > 0) return urls;
+      // Cap at 8 sections max to avoid flooding AI context
+      const toCapture = yPositions.slice(0, 8);
+
+      const sections: Buffer[] = [];
+      for (const top of toCapture) {
+        const h = Math.min(SECTION_H, H - top);
+        if (h < 150) continue; // skip tiny slivers
+        const section = await sharp(imageBuffer)
+          .extract({ left: 0, top, width: W, height: h })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+        sections.push(section);
+      }
+
+      if (sections.length > 0) {
+        const ts = Date.now();
+        const uploaded = await Promise.all(
+          sections.map((s, i) =>
+            put(`screenshots/section-${i}-${ts}.jpg`, s, { access: 'public', contentType: 'image/jpeg' })
+              .then(b => b.url)
+              .catch(() => null)
+          )
+        );
+        const urls = uploaded.filter(Boolean) as string[];
+        if (urls.length > 0) return urls;
+      }
     } catch (e) {
       console.warn('[screenshot] sharp crop failed:', e);
     }
   }
 
-  // Step 4: fallback — return the thum.io fullpage URL directly (no Blob)
+  // No Blob token — return fullpage URL directly
   if (imageBuffer) return [thumFullUrl];
 
-  // Step 5: last resort — viewport + fold + fullpage crop URLs from thum.io
-  const thumBase = 'https://image.thum.io/get/width/1280/noanimate';
+  // Last resort — two thum.io viewport crops (different crop heights = different sections)
+  const thumBase = 'https://image.thum.io/get/width/1280/noanimate/viewportwait/15000';
   const results = await Promise.all([
-    fetch(`${thumBase}/crop/900/viewportwait/5000/${url}`, { signal: AbortSignal.timeout(18_000) })
-      .then(r => r.ok ? `${thumBase}/crop/900/viewportwait/5000/${url}` : null).catch(() => null),
-    fetch(`${thumBase}/crop/1800/viewportwait/8000/${url}`, { signal: AbortSignal.timeout(18_000) })
-      .then(r => r.ok ? `${thumBase}/crop/1800/viewportwait/8000/${url}` : null).catch(() => null),
+    fetch(`${thumBase}/crop/900/${url}`, { signal: AbortSignal.timeout(30_000) })
+      .then(r => r.ok ? `${thumBase}/crop/900/${url}` : null).catch(() => null),
+    fetch(`${thumBase}/crop/1800/${url}`, { signal: AbortSignal.timeout(30_000) })
+      .then(r => r.ok ? `${thumBase}/crop/1800/${url}` : null).catch(() => null),
   ]);
   return results.filter(Boolean) as string[];
 }

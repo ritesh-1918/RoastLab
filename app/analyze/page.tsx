@@ -112,52 +112,53 @@ function enc(s: string) {
 }
 
 /* score >= 65 = hype mode, < 65 = roast mode */
+// All templates verified working on api.memegen.link
 const DIM_MEMES: Record<string, (score: number) => { template: string; top: string; bottom: string }> = {
   visual_design: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("visual design game"),              bottom: enc("absolutely ate and left crumbs bhai") }
+    ? { template: "success-kid",  top: enc("visual design game"),           bottom: enc("absolutely ate and left crumbs bhai") }
     : s < 40
-    ? { template: "facepalm",      top: enc("tera visual design dekh ke"),      bottom: enc("aankhein dard kar rahi hain bhai") }
-    : { template: "this-is-fine",  top: enc(`visual design ${s}/100`),          bottom: enc("not great not terrible") },
+    ? { template: "facepalm",     top: enc("tera visual design dekh ke"),   bottom: enc("aankhein dard kar rahi hain bhai") }
+    : { template: "this-is-fine", top: enc(`visual design ${s}/100`),       bottom: enc("not great not terrible") },
   copywriting: (s) => s >= 65
-    ? { template: "two-buttons",   top: enc("bad copy"),                        bottom: enc("teri copy actually slaps bhai fire hai") }
+    ? { template: "success-kid",  top: enc("teri copy"),                    bottom: enc("actually slaps bhai fire hai") }
     : s < 40
-    ? { template: "this-is-fine",  top: enc("teri copy padhne ke baad"),        bottom: enc("kuch samaj nahi aaya yaar") }
-    : { template: "drake",         top: enc("boring generic copy"),             bottom: enc("teri copywriting mid hai but okay-ish") },
+    ? { template: "this-is-fine", top: enc("teri copy padhne ke baad"),     bottom: enc("kuch samaj nahi aaya yaar") }
+    : { template: "drake",        top: enc("boring generic copy"),          bottom: enc("teri copywriting mid hai but okay-ish") },
   cta: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("CTA button finally"),              bottom: enc("people are actually clicking it bhai") }
+    ? { template: "success-kid",  top: enc("CTA button finally"),           bottom: enc("people are actually clicking it bhai") }
     : s < 40
-    ? { template: "disaster-girl", top: enc("tera CTA button dekh ke"),         bottom: enc("click karne ka mann hi nahi kiya") }
-    : { template: "facepalm",      top: enc("CTA thoda better"),                bottom: enc("par still confusing hai bhai") },
+    ? { template: "facepalm",     top: enc("tera CTA button dekh ke"),      bottom: enc("click karne ka mann hi nahi kiya") }
+    : { template: "this-is-fine", top: enc("CTA thoda better"),             bottom: enc("par still confusing hai bhai") },
   ux_flow: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("tera UX flow dekh ke"),            bottom: enc("user ek baar mein samjha fire") }
+    ? { template: "success-kid",  top: enc("tera UX flow dekh ke"),         bottom: enc("user ek baar mein samjha fire") }
     : s < 40
-    ? { template: "always-has-been", top: enc("tera UX flow"),                  bottom: enc("always been a maze bhai") }
-    : { template: "hide-the-pain",  top: enc(`UX flow ${s}/100`),               bottom: enc("user toh confuse hai par okay") },
+    ? { template: "facepalm",     top: enc("tera UX flow"),                 bottom: enc("maze jaisa feel hota hai bhai") }
+    : { template: "hide-the-pain",top: enc(`UX flow ${s}/100`),             bottom: enc("user toh confuse hai par okay") },
   accessibility: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("accessibility score"),             bottom: enc("screen reader khush hai bhai") }
+    ? { template: "success-kid",  top: enc("accessibility score"),          bottom: enc("screen reader khush hai bhai") }
     : s < 40
-    ? { template: "facepalm",      top: enc("screen reader ne try kiya"),       bottom: enc("give up kar diya bhai") }
-    : { template: "drake",         top: enc("inaccessible websites"),           bottom: enc("tera accessibility game decent") },
+    ? { template: "facepalm",     top: enc("screen reader ne try kiya"),    bottom: enc("give up kar diya bhai") }
+    : { template: "drake",        top: enc("inaccessible websites"),        bottom: enc("tera accessibility game decent") },
   trust_signals: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("trust signals"),                   bottom: enc("visitors trust kar rahe hain bhai legend") }
+    ? { template: "success-kid",  top: enc("trust signals"),                bottom: enc("visitors trust kar rahe hain bhai") }
     : s < 40
-    ? { template: "this-is-fine",  top: enc("visitor trust karne ki koshish"),  bottom: enc("RUN likhke chala gaya") }
-    : { template: "hide-the-pain", top: enc(`trust signals ${s}/100`),          bottom: enc("thoda trust toh aaya") },
+    ? { template: "this-is-fine", top: enc("visitor trust karne ki koshish"), bottom: enc("RUN likhke chala gaya") }
+    : { template: "hide-the-pain",top: enc(`trust signals ${s}/100`),       bottom: enc("thoda trust toh aaya") },
   mobile_experience: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("mobile pe khola tera site"),       bottom: enc("no zoom needed smooth hai bhai") }
+    ? { template: "success-kid",  top: enc("mobile pe khola tera site"),    bottom: enc("no zoom needed smooth hai bhai") }
     : s < 40
-    ? { template: "disaster-girl", top: enc("mobile pe khola tera site"),       bottom: enc("zoom out karna pad gaya 5 baar") }
-    : { template: "facepalm",      top: enc("mobile UX"),                       bottom: enc("better than expected par still") },
+    ? { template: "facepalm",     top: enc("mobile pe khola tera site"),    bottom: enc("zoom out karna pad gaya 5 baar") }
+    : { template: "this-is-fine", top: enc("mobile UX"),                    bottom: enc("better than expected par still") },
   performance: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("performance score"),               bottom: enc("site load speed bilkul fast bhai") }
+    ? { template: "success-kid",  top: enc("performance score"),            bottom: enc("site load speed bilkul fast bhai") }
     : s < 40
-    ? { template: "always-has-been", top: enc("loading loader loading"),        bottom: enc("tera site always slow raha") }
-    : { template: "drake",           top: enc("slow websites"),                 bottom: enc("tera performance score okay-ish") },
+    ? { template: "this-is-fine", top: enc("loading loader loading"),       bottom: enc("tera site always slow raha") }
+    : { template: "drake",        top: enc("slow websites"),                bottom: enc("tera performance score okay-ish") },
   seo: (s) => s >= 65
-    ? { template: "success-kid",   top: enc("google ne tera site dekha"),       bottom: enc("first page pe aa gaya bhai legend") }
+    ? { template: "success-kid",  top: enc("google ne tera site dekha"),    bottom: enc("first page pe aa gaya bhai legend") }
     : s < 40
-    ? { template: "this-is-fine",  top: enc("google ne tera site dekha"),       bottom: enc("skip maar ke nikal gaya") }
-    : { template: "hide-the-pain", top: enc(`SEO score ${s}/100`),              bottom: enc("google notice karega... shayad") },
+    ? { template: "this-is-fine", top: enc("google ne tera site dekha"),    bottom: enc("skip maar ke nikal gaya") }
+    : { template: "hide-the-pain",top: enc(`SEO score ${s}/100`),           bottom: enc("google notice karega... shayad") },
 };
 
 function MemeSticker({ score, dimension }: { score: number; dimension?: string }) {
@@ -172,11 +173,11 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
   } else if (score >= 65) {
     template = "success-kid";  top = enc(`score ${score}/100 fire`);  bottom = enc("ab toh proud feel ho raha hai");
   } else if (score >= 50) {
-    template = "disaster-girl";top = enc("tera website dekh ke");     bottom = enc("machi ee design chusav aa");
+    template = "hide-the-pain";top = enc("tera website dekh ke");     bottom = enc("okay-ish but could be better bhai");
   } else if (score >= 30) {
     template = "this-is-fine"; top = enc(`website score ${score}`);   bottom = enc("yaar ye kya kar diya tune");
   } else {
-    template = "facepalm";     top = enc("arey baap re");             bottom = enc("ee site ki design chesindi eppudu");
+    template = "facepalm";     top = enc("arey baap re");             bottom = enc("ye site kisne banaya bhai");
   }
 
   const memeUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
@@ -201,7 +202,8 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
         )}
         <div style={{ padding: 6, background: "#fff", borderRadius: 12, boxShadow: hype ? "0 8px 32px rgba(50,215,75,0.4), 0 2px 8px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)", transform: `rotate(${tiltDeg}deg)`, display: "inline-block" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={memeUrl} alt="meme" style={{ width: 260, height: "auto", borderRadius: 8, display: "block", minHeight: 160 }} loading="lazy"/>
+          <img src={memeUrl} alt="meme" style={{ width: 260, height: "auto", borderRadius: 8, display: "block", minHeight: 160 }} loading="lazy"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}/>
         </div>
         <div style={{ position: "absolute", top: -10, right: -10, width: 36, height: 36, borderRadius: "50%", background: badgeColor, border: "3px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff", boxShadow: `0 2px 8px ${badgeColor}80` }}>
           {score}
