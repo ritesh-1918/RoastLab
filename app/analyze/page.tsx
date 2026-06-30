@@ -135,30 +135,56 @@ function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
 }
 
 /* ─── Telugu/Indian meme sticker ─────────────────────────────────────────── */
-function MemeSticker({ score }: { score: number }) {
-  // memegen.link encoding: spaces→_, underscores→__, slashes→~s
-  function enc(s: string) {
-    return s
-      .replace(/_/g, "__")
-      .replace(/\//g, "~s")
-      .replace(/ /g, "_")
-      .replace(/\?/g, "~q")
-      .replace(/&/g, "~a")
-      .replace(/%/g, "~p");
-  }
+function enc(s: string) {
+  return s.replace(/_/g,"__").replace(/\//g,"~s").replace(/ /g,"_").replace(/\?/g,"~q").replace(/&/g,"~a").replace(/%/g,"~p");
+}
 
+const DIM_MEMES: Record<string, (score: number) => { template: string; top: string; bottom: string }> = {
+  visual_design: (s) => s < 45
+    ? { template: "facepalm",     top: enc("tera visual design dekh ke"),    bottom: enc("aankhein dard kar rahi hain bhai") }
+    : { template: "hide-the-pain",top: enc(`visual design ${s}/100`),        bottom: enc("괜찮아... nahi theek nahi") },
+  copywriting: (s) => s < 45
+    ? { template: "this-is-fine", top: enc("teri copy padhne ke baad"),       bottom: enc("kuch samaj nahi aaya yaar") }
+    : { template: "drake",        top: enc("boring copy"),                    bottom: enc("teri copywriting actually decent hai") },
+  cta: (s) => s < 45
+    ? { template: "disaster-girl",top: enc("tera CTA button dekh ke"),        bottom: enc("click karne ka mann hi nahi kiya") }
+    : { template: "facepalm",     top: enc("CTA thoda better"),               bottom: enc("par still confusing hai bhai") },
+  ux_flow: (s) => s < 45
+    ? { template: "always-has-been",top: enc("tera UX flow"),                 bottom: enc("always been a maze bhai") }
+    : { template: "hide-the-pain", top: enc(`UX flow score ${s}`),            bottom: enc("user toh confuse hai par okay") },
+  accessibility: (s) => s < 45
+    ? { template: "facepalm",     top: enc("screen reader ne try kiya"),      bottom: enc("give up kar diya bhai") }
+    : { template: "drake",        top: enc("inaccessible websites"),          bottom: enc("tera accessibility game decent") },
+  trust_signals: (s) => s < 45
+    ? { template: "this-is-fine", top: enc("visitor trust karne ki koshish"), bottom: enc("RUN likhke chala gaya") }
+    : { template: "hide-the-pain",top: enc(`trust signals ${s}/100`),         bottom: enc("thoda trust toh aaya") },
+  mobile_experience: (s) => s < 45
+    ? { template: "disaster-girl",top: enc("mobile pe khola tera site"),      bottom: enc("zoom out karna pad gaya 5 baar") }
+    : { template: "facepalm",     top: enc("mobile UX"),                      bottom: enc("better than expected par still") },
+  performance: (s) => s < 45
+    ? { template: "always-has-been",top: enc("loading loader loading"),       bottom: enc("tera site always slow raha") }
+    : { template: "drake",        top: enc("slow websites"),                  bottom: enc("tera performance score okay-ish") },
+  seo: (s) => s < 45
+    ? { template: "this-is-fine", top: enc("google ne tera site dekha"),      bottom: enc("skip maar ke nikal gaya") }
+    : { template: "hide-the-pain",top: enc(`SEO score ${s}/100`),             bottom: enc("google notice karega... shayad") },
+};
+
+function MemeSticker({ score, dimension }: { score: number; dimension?: string }) {
   let template: string, top: string, bottom: string;
 
-  if (score >= 80) {
-    template = "drake"; top = enc("bad websites"); bottom = enc("tera site actually fire hai bhai");
+  if (dimension && DIM_MEMES[dimension]) {
+    const m = DIM_MEMES[dimension](score);
+    template = m.template; top = m.top; bottom = m.bottom;
+  } else if (score >= 80) {
+    template = "drake";        top = enc("bad websites");      bottom = enc("tera site actually fire hai bhai");
   } else if (score >= 65) {
-    template = "hide-the-pain"; top = enc(`score ${score}/100`); bottom = enc("괜찮아... nahi theek nahi hai");
+    template = "hide-the-pain";top = enc(`score ${score}/100`);bottom = enc("괜찮아... nahi theek nahi hai");
   } else if (score >= 50) {
-    template = "disaster-girl"; top = enc("tera website dekh ke"); bottom = enc("machi ee design chusav aa");
+    template = "disaster-girl";top = enc("tera website dekh ke");bottom = enc("machi ee design chusav aa");
   } else if (score >= 30) {
-    template = "this-is-fine"; top = enc(`website score ${score}`); bottom = enc("yaar ye kya kar diya tune");
+    template = "this-is-fine"; top = enc(`website score ${score}`);bottom = enc("yaar ye kya kar diya tune");
   } else {
-    template = "facepalm"; top = enc("arey baap re"); bottom = enc("ee site ki design chesindi eppudu");
+    template = "facepalm";     top = enc("arey baap re");       bottom = enc("ee site ki design chesindi eppudu");
   }
 
   const memeUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
@@ -167,22 +193,15 @@ function MemeSticker({ score }: { score: number }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.85, rotate: -3 }}
       animate={{ opacity: 1, scale: 1, rotate: -2 }}
-      transition={{ delay: 0.6, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+      transition={{ delay: 0.4, duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
       style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}
     >
       <div style={{ position: "relative", display: "inline-block" }}>
-        {/* Sticker white border effect */}
         <div style={{ padding: 6, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)", transform: "rotate(-2deg)", display: "inline-block" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={memeUrl}
-            alt="roast meme"
-            style={{ width: 300, height: "auto", borderRadius: 8, display: "block", minHeight: 180 }}
-            loading="lazy"
-          />
+          <img src={memeUrl} alt="roast meme" style={{ width: 260, height: "auto", borderRadius: 8, display: "block", minHeight: 160 }} loading="lazy"/>
         </div>
-        {/* Score stamp overlay */}
-        <div style={{ position: "absolute", top: -10, right: -10, width: 40, height: 40, borderRadius: "50%", background: "#E8334A", border: "3px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#fff", boxShadow: "0 2px 8px rgba(232,51,74,0.5)" }}>
+        <div style={{ position: "absolute", top: -10, right: -10, width: 36, height: 36, borderRadius: "50%", background: "#E8334A", border: "3px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff", boxShadow: "0 2px 8px rgba(232,51,74,0.5)" }}>
           {score}
         </div>
       </div>
@@ -226,9 +245,6 @@ function VerdictHero({ score, dims }: { score: number; dims: DimensionResult[] }
         style={{ margin: "0 0 20px", fontSize: 13, color: "#4A4A6E", fontStyle: "italic" }}>
         {m.vibe}
       </motion.p>
-
-      {/* Meme sticker */}
-      <MemeSticker score={score} />
 
       {/* Dim score pills row */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -737,7 +753,12 @@ function AnalyzeContent() {
       {dims.map((d, i) => {
         const worstScore = Math.min(...dims.map(x => x.score));
         const isWorst = d.score === worstScore;
-        return <RoastCard key={d.dimension} result={d} idx={i} isWorst={isWorst} />;
+        return (
+          <React.Fragment key={d.dimension}>
+            <RoastCard result={d} idx={i} isWorst={isWorst} />
+            <MemeSticker score={d.score} dimension={d.dimension} />
+          </React.Fragment>
+        );
       })}
       {!done && !error && pendingDims.map(d => <Skeleton key={d} dimKey={d} />)}
 
