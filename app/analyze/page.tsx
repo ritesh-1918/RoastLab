@@ -136,22 +136,29 @@ function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
 
 /* ─── Telugu/Indian meme sticker ─────────────────────────────────────────── */
 function MemeSticker({ score }: { score: number }) {
-  // Contextual memes from memegen.link — free, no API key
-  // Format: https://api.memegen.link/images/{template}/{top}/{bottom}.png
-  function enc(s: string) { return encodeURIComponent(s.replace(/ /g, "_")); }
+  // memegen.link encoding: spaces→_, underscores→__, slashes→~s
+  function enc(s: string) {
+    return s
+      .replace(/_/g, "__")
+      .replace(/\//g, "~s")
+      .replace(/ /g, "_")
+      .replace(/\?/g, "~q")
+      .replace(/&/g, "~a")
+      .replace(/%/g, "~p");
+  }
 
   let template: string, top: string, bottom: string;
 
-  if (score >= 75) {
-    template = "drake"; top = enc("rejecting bad websites"); bottom = enc("bhai tera site actually fire hai");
-  } else if (score >= 60) {
-    template = "hide-the-pain"; top = enc("website score 62/100"); bottom = enc("괜찮아 괜찮아... nahi theek nahi hai");
-  } else if (score >= 40) {
-    template = "disaster-girl"; top = enc("tera website dekh ke"); bottom = enc("machi ee design chusav aa 💀");
-  } else if (score >= 25) {
-    template = "this-is-fine"; top = enc("website score " + score); bottom = enc("yaar ye kya kar diya tune");
+  if (score >= 80) {
+    template = "drake"; top = enc("bad websites"); bottom = enc("tera site actually fire hai bhai");
+  } else if (score >= 65) {
+    template = "hide-the-pain"; top = enc(`score ${score}/100`); bottom = enc("괜찮아... nahi theek nahi hai");
+  } else if (score >= 50) {
+    template = "disaster-girl"; top = enc("tera website dekh ke"); bottom = enc("machi ee design chusav aa");
+  } else if (score >= 30) {
+    template = "this-is-fine"; top = enc(`website score ${score}`); bottom = enc("yaar ye kya kar diya tune");
   } else {
-    template = "facepalm"; top = enc("arey baap re"); bottom = enc("ee site ki design chesindi eppudu 😭");
+    template = "facepalm"; top = enc("arey baap re"); bottom = enc("ee site ki design chesindi eppudu");
   }
 
   const memeUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
@@ -170,12 +177,12 @@ function MemeSticker({ score }: { score: number }) {
           <img
             src={memeUrl}
             alt="roast meme"
-            style={{ width: 280, height: "auto", borderRadius: 8, display: "block", maxHeight: 220, objectFit: "cover" }}
+            style={{ width: 300, height: "auto", borderRadius: 8, display: "block", minHeight: 180 }}
             loading="lazy"
           />
         </div>
         {/* Score stamp overlay */}
-        <div style={{ position: "absolute", top: -8, right: -8, width: 36, height: 36, borderRadius: "50%", background: "#E8334A", border: "2px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff" }}>
+        <div style={{ position: "absolute", top: -10, right: -10, width: 40, height: 40, borderRadius: "50%", background: "#E8334A", border: "3px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#fff", boxShadow: "0 2px 8px rgba(232,51,74,0.5)" }}>
           {score}
         </div>
       </div>
