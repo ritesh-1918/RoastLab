@@ -1,6 +1,22 @@
 import { put } from '@vercel/blob';
 import sharp from 'sharp';
 
+// Detect bot-block/403 pages: resize to 10x10, check if all pixels are nearly identical (uniform error page)
+async function isBotBlockPage(buf: Buffer): Promise<boolean> {
+  try {
+    const { data } = await sharp(buf).resize(10, 10, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+    const pixels = Array.from(data);
+    const avg = pixels.reduce((s, v) => s + v, 0) / pixels.length;
+    // If >90% of pixels within 15 of average → near-uniform → likely error page
+    const uniform = pixels.filter(v => Math.abs(v - avg) < 15).length / pixels.length;
+    // Also flag near-white pages (bot check / 403 HTML with white bg)
+    const nearWhite = avg > 230;
+    return uniform > 0.9 || nearWhite;
+  } catch {
+    return false;
+  }
+}
+
 export async function captureScreenshot(url: string): Promise<{
   base64: string;
   mimeType: 'image/jpeg';
@@ -8,16 +24,19 @@ export async function captureScreenshot(url: string): Promise<{
 }> {
   // Primary: thum.io — no API key, free, reliable. 5s wait before capture.
   try {
-    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/viewportwait/5000/${url}`;
+    const thumUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/viewportwait/15000/${url}`;
     const res = await fetch(thumUrl, {
       headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
-      signal: AbortSignal.timeout(28_000),
+      signal: AbortSignal.timeout(40_000),
     });
     if (res.ok) {
       const buffer = await res.arrayBuffer();
-      if (buffer.byteLength > 8000) {
-        const base64 = Buffer.from(buffer).toString('base64');
-        return { base64, mimeType: 'image/jpeg', screenshotUrl: thumUrl };
+      if (buffer.byteLength > 30_000) {
+        const candidate = Buffer.from(buffer);
+        if (!await isBotBlockPage(candidate)) {
+          const base64 = candidate.toString('base64');
+          return { base64, mimeType: 'image/jpeg', screenshotUrl: thumUrl };
+        }
       }
     }
   } catch {
@@ -69,8 +88,10 @@ export async function captureMultipleScreenshots(url: string): Promise<string[]>
     });
     if (res.ok) {
       const buf = await res.arrayBuffer();
-      // Must be >50KB to not be a bot-check page or blank
-      if (buf.byteLength > 50_000) imageBuffer = Buffer.from(buf);
+      if (buf.byteLength > 30_000) {
+        const candidate = Buffer.from(buf);
+        if (!await isBotBlockPage(candidate)) imageBuffer = candidate;
+      }
     }
   } catch { /* fall through */ }
 
@@ -88,7 +109,10 @@ export async function captureMultipleScreenshots(url: string): Promise<string[]>
           const imgRes = await fetch(json.data.screenshot.url, { signal: AbortSignal.timeout(20_000) });
           if (imgRes.ok) {
             const buf = await imgRes.arrayBuffer();
-            if (buf.byteLength > 50_000) imageBuffer = Buffer.from(buf);
+            if (buf.byteLength > 30_000) {
+              const candidate = Buffer.from(buf);
+              if (!await isBotBlockPage(candidate)) imageBuffer = candidate;
+            }
           }
         }
       }
