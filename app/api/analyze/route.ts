@@ -157,43 +157,44 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Persist audit + email for every signed-in user
+        // Persist audit + email for every signed-in user.
+        // MUST await before the stream closes — Vercel freezes the function's
+        // execution context right after controller.close(), killing any
+        // still-pending fire-and-forget promise (DB write, email) mid-flight.
         if (clerkUser) {
           const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
           const userName = clerkUser.firstName ?? undefined;
           const auditUrl = url ?? 'screenshot-upload';
 
-          saveAudit({
-            userId: clerkUser.id,
-            url: auditUrl,
-            score: result.overallScore,
-            tier,
-            dimensions: result.dimensions,
-          }).catch(() => {/* non-fatal */});
-
-          // Email every completed audit — URL or screenshot upload
-          if (userEmail) {
-            sendAuditEmail({
-              to: userEmail,
-              name: userName,
+          await Promise.allSettled([
+            saveAudit({
+              userId: clerkUser.id,
               url: auditUrl,
               score: result.overallScore,
-              dims: result.dimensions,
               tier,
-              userId: clerkUser.id,
-            }).catch(() => {/* non-fatal */});
-          }
-
-          // Log API usage for admin stats
-          if (result.providerUsed) {
-            logApiUsage({
-              userId: clerkUser.id,
-              provider: result.providerUsed,
-              model: result.providerUsed,
-              tokensIn: 0,
-              tokensOut: 0,
-            }).catch(() => {});
-          }
+              dimensions: result.dimensions,
+            }),
+            userEmail
+              ? sendAuditEmail({
+                  to: userEmail,
+                  name: userName,
+                  url: auditUrl,
+                  score: result.overallScore,
+                  dims: result.dimensions,
+                  tier,
+                  userId: clerkUser.id,
+                })
+              : Promise.resolve(),
+            result.providerUsed
+              ? logApiUsage({
+                  userId: clerkUser.id,
+                  provider: result.providerUsed,
+                  model: result.providerUsed,
+                  tokensIn: 0,
+                  tokensOut: 0,
+                })
+              : Promise.resolve(),
+          ]);
         }
 
         send({
