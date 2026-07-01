@@ -79,44 +79,54 @@ export async function captureMultipleScreenshots(url: string): Promise<string[]>
   // viewportwait=15000 tells thum.io to idle 15s after DOMContentLoaded.
   const thumFullUrl = `https://image.thum.io/get/width/1280/noanimate/viewportwait/15000/fullpage/${url}`;
 
-  let imageBuffer: Buffer | null = null;
+  // Fetch BOTH thum.io and microlink fullpage, then keep whichever is TALLER —
+  // both services intermittently return just the viewport instead of the true
+  // full page, so racing them and picking the taller image maximizes coverage.
+  const MIN_BYTES = 8_000; // low enough to accept small-but-valid pages, high enough to reject blanks
 
-  try {
-    const res = await fetch(thumFullUrl, {
-      headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
-      signal: AbortSignal.timeout(45_000),
-    });
-    if (res.ok) {
-      const buf = await res.arrayBuffer();
-      if (buf.byteLength > 30_000) {
-        const candidate = Buffer.from(buf);
-        if (!await isBotBlockPage(candidate)) imageBuffer = candidate;
-      }
-    }
-  } catch { /* fall through */ }
-
-  // Fallback: microlink with long wait
-  if (!imageBuffer) {
+  async function tryThum(): Promise<Buffer | null> {
     try {
-      const mlUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=jpeg&screenshot.quality=80&screenshot.fullPage=true&screenshot.waitForTimeout=12000`;
+      const res = await fetch(thumFullUrl, {
+        headers: { 'User-Agent': 'RoastLab/1.0 (+https://getroastlab.vercel.app)' },
+        signal: AbortSignal.timeout(45_000),
+      });
+      if (!res.ok) return null;
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.byteLength < MIN_BYTES) return null;
+      if (await isBotBlockPage(buf)) return null;
+      return buf;
+    } catch { return null; }
+  }
+
+  async function tryMicrolink(): Promise<Buffer | null> {
+    try {
+      const mlUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&screenshot=true&meta=false&screenshot.type=png&screenshot.fullPage=true&screenshot.waitForTimeout=12000`;
       const res = await fetch(mlUrl, {
         headers: process.env.MICROLINK_API_KEY ? { 'x-api-key': process.env.MICROLINK_API_KEY } : {},
         signal: AbortSignal.timeout(45_000),
       });
-      if (res.ok) {
-        const json = await res.json() as { status: string; data?: { screenshot?: { url?: string } } };
-        if (json.status === 'success' && json.data?.screenshot?.url) {
-          const imgRes = await fetch(json.data.screenshot.url, { signal: AbortSignal.timeout(20_000) });
-          if (imgRes.ok) {
-            const buf = await imgRes.arrayBuffer();
-            if (buf.byteLength > 30_000) {
-              const candidate = Buffer.from(buf);
-              if (!await isBotBlockPage(candidate)) imageBuffer = candidate;
-            }
-          }
-        }
-      }
-    } catch { /* give up */ }
+      if (!res.ok) return null;
+      const json = await res.json() as { status: string; data?: { screenshot?: { url?: string } } };
+      if (json.status !== 'success' || !json.data?.screenshot?.url) return null;
+      const imgRes = await fetch(json.data.screenshot.url, { signal: AbortSignal.timeout(20_000) });
+      if (!imgRes.ok) return null;
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      if (buf.byteLength < MIN_BYTES) return null;
+      if (await isBotBlockPage(buf)) return null;
+      return buf;
+    } catch { return null; }
+  }
+
+  const [thumBuf, mlBuf] = await Promise.all([tryThum(), tryMicrolink()]);
+
+  // Pick the taller image (more of the page captured)
+  let imageBuffer: Buffer | null = null;
+  try {
+    const th = thumBuf ? (await sharp(thumBuf).metadata()).height ?? 0 : 0;
+    const mh = mlBuf ? (await sharp(mlBuf).metadata()).height ?? 0 : 0;
+    imageBuffer = th >= mh ? (thumBuf ?? mlBuf) : (mlBuf ?? thumBuf);
+  } catch {
+    imageBuffer = thumBuf ?? mlBuf;
   }
 
   // Crop fullpage into non-overlapping 900px sections via Sharp, upload to Blob
@@ -135,8 +145,9 @@ export async function captureMultipleScreenshots(url: string): Promise<string[]>
         y += SECTION_H;
       }
 
-      // Cap at 8 sections max to avoid flooding AI context
-      const toCapture = yPositions.slice(0, 8);
+      // Cover the ENTIRE page navbar→footer. Cap at 20 sections (18000px) as a
+      // sanity limit against pathologically long / infinite-scroll pages.
+      const toCapture = yPositions.slice(0, 20);
 
       const sections: Buffer[] = [];
       for (const top of toCapture) {
