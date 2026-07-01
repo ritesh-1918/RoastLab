@@ -107,9 +107,14 @@ function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
 }
 
 /* ─── Emphasis renderer — **bold** highlighted, ~~strike~~ crossed-out ──────
-   Lets AI-generated roast titles/summaries carry their own emphasis: wrap the
-   savage word in **stars** for a bright highlighted chip, or ~~tildes~~ for
-   a struck-through "correction" gag. Falls back to plain text if none used. */
+   Rotates through several distinct visual treatments per word (chip, marker
+   underline, glow, box) so repeated highlights don't all look identical. */
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 function HighlightText({ text, accentColor = "#E8334A" }: { text: string; accentColor?: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*|~~[^~]+~~)/g).filter(Boolean);
   return (
@@ -117,18 +122,28 @@ function HighlightText({ text, accentColor = "#E8334A" }: { text: string; accent
       {parts.map((part, i) => {
         if (part.startsWith("**") && part.endsWith("**")) {
           const word = part.slice(2, -2);
+          const style = hashStr(word) % 4;
+          if (style === 0) return (
+            <span key={i} style={{ background: `${accentColor}22`, color: accentColor, fontWeight: 900, padding: "1px 5px", borderRadius: 4, fontSize: "0.95em", border: `1px solid ${accentColor}55`, whiteSpace: "nowrap" }}>{word}</span>
+          );
+          if (style === 1) return (
+            <span key={i} style={{ color: accentColor, fontWeight: 900, textDecoration: `underline wavy ${accentColor}`, textDecorationThickness: 2, textUnderlineOffset: 3 }}>{word}</span>
+          );
+          if (style === 2) return (
+            <span key={i} style={{ color: "#fff", fontWeight: 900, textShadow: `0 0 8px ${accentColor}, 0 0 2px ${accentColor}` }}>{word}</span>
+          );
           return (
-            <span key={i} style={{
-              background: `${accentColor}22`, color: accentColor, fontWeight: 900,
-              padding: "1px 5px", borderRadius: 4, fontSize: "0.95em",
-              border: `1px solid ${accentColor}55`, whiteSpace: "nowrap",
-            }}>{word}</span>
+            <span key={i} style={{ background: accentColor, color: "#000", fontWeight: 900, padding: "0 4px", boxShadow: `2px 2px 0 ${accentColor}66`, display: "inline-block", transform: "rotate(-1deg)" }}>{word}</span>
           );
         }
         if (part.startsWith("~~") && part.endsWith("~~")) {
           const word = part.slice(2, -2);
-          return (
+          const style = hashStr(word) % 2;
+          if (style === 0) return (
             <span key={i} style={{ textDecoration: "line-through", opacity: 0.55, fontStyle: "italic" }}>{word}</span>
+          );
+          return (
+            <span key={i} style={{ textDecoration: "line-through", textDecorationColor: "#FF2D55", textDecorationThickness: 2, opacity: 0.7 }}>{word}</span>
           );
         }
         return <span key={i}>{part}</span>;
@@ -142,59 +157,66 @@ function enc(s: string) {
   return s.replace(/_/g,"__").replace(/\//g,"~s").replace(/ /g,"_").replace(/\?/g,"~q").replace(/&/g,"~a").replace(/%/g,"~p");
 }
 
-/* score >= 65 = hype mode, < 65 = roast mode */
+/* score >= 65 = hype mode, < 65 = roast mode. Captions in Telugu-English
+   mash-up slang (Tollywood-meme register) so it lands as a local joke,
+   not a generic "bad website" search result. */
 // Real memegen.link template IDs — verified against /templates/ endpoint.
 // success (Success Kid), fine (This is Fine), harold (Hide the Pain Harold),
 // disastergirl (Disaster Girl), facepalm, drake, sk (Skeptical Kid)
 const DIM_MEMES: Record<string, (score: number) => { template: string; top: string; bottom: string }> = {
   visual_design: (s) => s >= 65
-    ? { template: "success",      top: enc("visual design game"),           bottom: enc("absolutely ate and left crumbs bhai") }
+    ? { template: "success",      top: enc("ee visual design chusi"),          bottom: enc("literally superb ra bhayya") }
     : s < 40
-    ? { template: "facepalm",     top: enc("tera visual design dekh ke"),   bottom: enc("aankhein dard kar rahi hain bhai") }
-    : { template: "fine",         top: enc(`visual design ${s}/100`),       bottom: enc("not great not terrible") },
+    ? { template: "facepalm",     top: enc("ee design chesindi evaru ra"),     bottom: enc("kallu manta ga unnai bro") }
+    : { template: "fine",         top: enc(`design score ${s}/100`),           bottom: enc("parledu ante parledu") },
   copywriting: (s) => s >= 65
-    ? { template: "success",      top: enc("teri copy"),                    bottom: enc("actually slaps bhai fire hai") }
+    ? { template: "success",      top: enc("ee copy chadivaka"),               bottom: enc("literal fire ra pandu") }
     : s < 40
-    ? { template: "disastergirl", top: enc("teri copy padhne ke baad"),     bottom: enc("kuch samaj nahi aaya yaar") }
-    : { template: "drake",        top: enc("boring generic copy"),          bottom: enc("teri copywriting mid hai but okay-ish") },
+    ? { template: "disastergirl", top: enc("ee copy chadivi"),                 bottom: enc("em ardam kaledhu bro") }
+    : { template: "drake",        top: enc("boring generic copy pedathe"),     bottom: enc("ee copy mahaa mahaa parledu") },
   cta: (s) => s >= 65
-    ? { template: "success",      top: enc("CTA button finally"),           bottom: enc("people are actually clicking it bhai") }
+    ? { template: "success",      top: enc("cta button ippudu ayina"),         bottom: enc("janalu click chesthunnaru ra") }
     : s < 40
-    ? { template: "facepalm",     top: enc("tera CTA button dekh ke"),      bottom: enc("click karne ka mann hi nahi kiya") }
-    : { template: "sk",           top: enc("CTA thoda better"),             bottom: enc("par still confusing hai bhai") },
+    ? { template: "facepalm",     top: enc("ee cta button chusi"),             bottom: enc("click cheyyala anipinche kaadu ra") }
+    : { template: "sk",           top: enc("cta konchem better ayindi"),       bottom: enc("but confusing ga anipisthundi bro") },
   ux_flow: (s) => s >= 65
-    ? { template: "success",      top: enc("tera UX flow dekh ke"),         bottom: enc("user ek baar mein samjha fire") }
+    ? { template: "success",      top: enc("ee UX flow chusi"),                bottom: enc("okka sari fire ga ardam ayindi") }
     : s < 40
-    ? { template: "disastergirl", top: enc("tera UX flow"),                 bottom: enc("maze jaisa feel hota hai bhai") }
-    : { template: "harold",       top: enc(`UX flow ${s}/100`),             bottom: enc("user toh confuse hai par okay") },
+    ? { template: "disastergirl", top: enc("ee UX flow"),                      bottom: enc("labyrinth la unnadi ra bhayya") }
+    : { template: "harold",       top: enc(`UX flow ${s}/100`),                bottom: enc("confuse ga unna parledu") },
   accessibility: (s) => s >= 65
-    ? { template: "success",      top: enc("accessibility score"),          bottom: enc("screen reader khush hai bhai") }
+    ? { template: "success",      top: enc("accessibility score chusi"),       bottom: enc("screen reader santhosham ga unnadi") }
     : s < 40
-    ? { template: "facepalm",     top: enc("screen reader ne try kiya"),    bottom: enc("give up kar diya bhai") }
-    : { template: "drake",        top: enc("inaccessible websites"),        bottom: enc("tera accessibility game decent") },
+    ? { template: "facepalm",     top: enc("screen reader try chesindi"),      bottom: enc("give up ayipoyindi bro") }
+    : { template: "drake",        top: enc("inaccessible websites unte"),      bottom: enc("ee site accessibility decent ra") },
   trust_signals: (s) => s >= 65
-    ? { template: "success",      top: enc("trust signals"),                bottom: enc("visitors trust kar rahe hain bhai") }
+    ? { template: "success",      top: enc("trust signals chusi"),             bottom: enc("visitors trust chesthunnaru ra legend") }
     : s < 40
-    ? { template: "sk",           top: enc("visitor trust karne ki koshish"), bottom: enc("RUN likhke chala gaya") }
-    : { template: "harold",       top: enc(`trust signals ${s}/100`),       bottom: enc("thoda trust toh aaya") },
+    ? { template: "sk",           top: enc("visitor trust cheyyali ani try"),  bottom: enc("RUN ani vellipoyadu bro") }
+    : { template: "harold",       top: enc(`trust signals ${s}/100`),          bottom: enc("konchem trust vachindi anukuntunna") },
   mobile_experience: (s) => s >= 65
-    ? { template: "success",      top: enc("mobile pe khola tera site"),    bottom: enc("no zoom needed smooth hai bhai") }
+    ? { template: "success",      top: enc("mobile lo open chesi chusi"),      bottom: enc("zoom avasaram ledu smooth ra") }
     : s < 40
-    ? { template: "facepalm",     top: enc("mobile pe khola tera site"),    bottom: enc("zoom out karna pad gaya 5 baar") }
-    : { template: "fine",         top: enc("mobile UX"),                    bottom: enc("better than expected par still") },
+    ? { template: "facepalm",     top: enc("mobile lo open chesi chusi"),      bottom: enc("zoom out cheyyalsi vachindi 5 sarlu") }
+    : { template: "fine",         top: enc("mobile UX"),                       bottom: enc("expected kanna better ra bhayya") },
   performance: (s) => s >= 65
-    ? { template: "success",      top: enc("performance score"),            bottom: enc("site load speed bilkul fast bhai") }
+    ? { template: "success",      top: enc("performance score chusi"),         bottom: enc("site load speed super fast ra") }
     : s < 40
-    ? { template: "disastergirl", top: enc("loading loader loading"),       bottom: enc("tera site always slow raha") }
-    : { template: "drake",        top: enc("slow websites"),                bottom: enc("tera performance score okay-ish") },
+    ? { template: "disastergirl", top: enc("loading loading loading"),         bottom: enc("ee site eppudu slow ne bro") }
+    : { template: "drake",        top: enc("slow websites unte"),              bottom: enc("ee performance score parledu") },
   seo: (s) => s >= 65
-    ? { template: "success",      top: enc("google ne tera site dekha"),    bottom: enc("first page pe aa gaya bhai legend") }
+    ? { template: "success",      top: enc("google ee site chusi"),            bottom: enc("first page ki vachesindi legend ra") }
     : s < 40
-    ? { template: "sk",           top: enc("google ne tera site dekha"),    bottom: enc("skip maar ke nikal gaya") }
-    : { template: "harold",       top: enc(`SEO score ${s}/100`),           bottom: enc("google notice karega... shayad") },
+    ? { template: "sk",           top: enc("google ee site chusi"),            bottom: enc("skip cheysi vellipoyadu bro") }
+    : { template: "harold",       top: enc(`SEO score ${s}/100`),              bottom: enc("google notice chesthundi... shayad") },
 };
 
-function MemeSticker({ score, dimension }: { score: number; dimension?: string }) {
+// Independent meme sources, rotated by card index — each card tries exactly
+// ONE alt source (no cross-source chaining); memegen.link is the last resort
+// only if that one source fails.
+const MEME_SOURCES = ["giphy", "tenor", "reddit"] as const;
+
+function MemeSticker({ score, dimension, idx = 0 }: { score: number; dimension?: string; idx?: number }) {
   let template: string, top: string, bottom: string, searchTerm: string;
   const hype = score >= 65;
 
@@ -221,10 +243,12 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
 
   const fallbackUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
   const [memeUrl, setMemeUrl] = useState(fallbackUrl);
+  const source = MEME_SOURCES[idx % MEME_SOURCES.length];
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/meme?q=${encodeURIComponent(searchTerm)}`)
+    const mood = hype ? "hype" : "roast";
+    fetch(`/api/meme?q=${encodeURIComponent(searchTerm)}&source=${source}&mood=${mood}`)
       .then(r => r.ok ? r.json() : null)
       .then((data: { url: string | null } | null) => {
         if (!cancelled && data?.url) setMemeUrl(data.url);
@@ -234,15 +258,19 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Vary size, alignment and tilt per card so memes don't all look identical
+  const sizeVariant = idx % 3;
+  const width = sizeVariant === 0 ? 220 : sizeVariant === 1 ? 300 : 260;
+  const align = idx % 2 === 0 ? "center" : idx % 4 === 1 ? "flex-start" : "flex-end";
   const badgeColor = hype ? "#32D74B" : "#E8334A";
-  const tiltDeg = hype ? 2 : -2;
+  const tiltDeg = (hype ? 2 : -2) + ((idx % 3) - 1) * 1.5;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.85, rotate: hype ? 3 : -3 }}
       animate={{ opacity: 1, scale: 1, rotate: tiltDeg }}
       transition={{ delay: 0.4, duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
-      style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}
+      style={{ marginBottom: 20, display: "flex", justifyContent: align, paddingLeft: align === "flex-start" ? 8 : 0, paddingRight: align === "flex-end" ? 8 : 0 }}
     >
       <div style={{ position: "relative", display: "inline-block" }}>
         {hype && (
@@ -255,7 +283,7 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
         )}
         <div style={{ padding: 6, background: "#fff", borderRadius: 12, boxShadow: hype ? "0 8px 32px rgba(50,215,75,0.4), 0 2px 8px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)", transform: `rotate(${tiltDeg}deg)`, display: "inline-block" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={memeUrl} alt="meme" style={{ width: 260, height: "auto", borderRadius: 8, display: "block", minHeight: 160 }} loading="lazy"
+          <img src={memeUrl} alt="meme" style={{ width, height: "auto", borderRadius: 8, display: "block", minHeight: 140 }} loading="lazy"
             onError={(e) => { if (memeUrl !== fallbackUrl) { setMemeUrl(fallbackUrl); } else { (e.currentTarget as HTMLImageElement).style.display = 'none'; } }}/>
         </div>
         <div style={{ position: "absolute", top: -10, right: -10, width: 36, height: 36, borderRadius: "50%", background: badgeColor, border: "3px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff", boxShadow: `0 2px 8px ${badgeColor}80` }}>
@@ -1114,8 +1142,9 @@ function AnalyzeContent() {
         const isWorst = d.score === worstScore;
         return (
           <React.Fragment key={d.dimension}>
+            {i % 3 === 2 && <MemeSticker score={d.score} dimension={d.dimension} idx={i} />}
             <RoastCard result={d} idx={i} isWorst={isWorst} />
-            <MemeSticker score={d.score} dimension={d.dimension} />
+            {i % 3 !== 2 && <MemeSticker score={d.score} dimension={d.dimension} idx={i} />}
           </React.Fragment>
         );
       })}
