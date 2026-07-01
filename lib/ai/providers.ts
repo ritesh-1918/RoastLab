@@ -13,9 +13,19 @@ export type Provider = {
   supportsVision: boolean;
 };
 
-function makeClient(baseURL: string, apiKey: string): OpenAI {
-  return new OpenAI({ baseURL, apiKey, dangerouslyAllowBrowser: false });
+function makeClient(baseURL: string, apiKey: string, extraHeaders?: Record<string, string>): OpenAI {
+  return new OpenAI({
+    baseURL,
+    apiKey,
+    dangerouslyAllowBrowser: false,
+    defaultHeaders: extraHeaders,
+  });
 }
+
+const OPENROUTER_HEADERS = {
+  'HTTP-Referer': 'https://getroastlab.vercel.app',
+  'X-Title': 'RoastLab',
+};
 
 /**
  * Ordered fallback chain.
@@ -42,21 +52,27 @@ export function getProviders(): Provider[] {
     // llama-4-*:free went paid; these are the current actually-free vision models.
     {
       name: 'openrouter-gemma',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? '', OPENROUTER_HEADERS),
       model: 'google/gemma-4-26b-a4b-it:free',
       supportsVision: true,
     },
     {
       name: 'openrouter-nemotron',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? '', OPENROUTER_HEADERS),
       model: 'nvidia/nemotron-nano-12b-v2-vl:free',
       supportsVision: true,
     },
-    // Last resort — OpenRouter auto free router (picks any available free model)
+    // Vision-capable free fallbacks — verified free + image-capable
     {
-      name: 'openrouter-auto',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
-      model: 'openrouter/free',
+      name: 'openrouter-qwen',
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? '', OPENROUTER_HEADERS),
+      model: 'qwen/qwen2.5-vl-7b-instruct:free',
+      supportsVision: true,
+    },
+    {
+      name: 'openrouter-llama-vision',
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? '', OPENROUTER_HEADERS),
+      model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
       supportsVision: true,
     },
   ].filter((p) => {

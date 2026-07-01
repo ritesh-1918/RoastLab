@@ -1060,16 +1060,17 @@ function AnalyzeContent() {
                 </div>
                 <span style={{ fontFamily: "'Courier New',monospace", fontSize: 8, color: "#2A2A2A", letterSpacing: "0.05em" }}>{shots.length} CAPTURES</span>
               </div>
-              {/* Horizontal filmstrip */}
+              {/* Horizontal filmstrip — each capture animates in as SSE delivers it */}
               <div style={{ display: "flex", gap: 2, background: "#080808", overflowX: "auto", padding: 8 }}>
                 {shots.map((s, i) => (
-                  <div key={i} style={{ flexShrink: 0, position: "relative", border: i === 0 ? "2px solid #E8334A" : "1px solid #1A1A1A" }}>
+                  <motion.div key={s} initial={{ opacity: 0, x: 24, scale: 0.92 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.4, ease: "easeOut" }}
+                    style={{ flexShrink: 0, position: "relative", border: i === 0 ? "2px solid #E8334A" : "1px solid #1A1A1A" }}>
                     <div style={{ position: "absolute", top: 4, left: 4, fontFamily: "'Courier New',monospace", fontSize: 8, background: "#000", color: i === 0 ? "#E8334A" : "#333", padding: "1px 5px", zIndex: 1, letterSpacing: "0.05em" }}>
                       {i === 0 ? "TOP" : i === 1 ? "FOLD" : "FULL"}
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={s} alt={`capture ${i+1}`} style={{ width: i === 2 ? 130 : 180, height: 120, objectFit: "cover", objectPosition: "top", display: "block" }} loading="lazy"/>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
