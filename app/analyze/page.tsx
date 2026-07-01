@@ -214,7 +214,7 @@ const DIM_MEMES: Record<string, (score: number) => { template: string; top: stri
 // Independent meme sources, rotated by card index — each card tries exactly
 // ONE alt source (no cross-source chaining); memegen.link is the last resort
 // only if that one source fails.
-const MEME_SOURCES = ["giphy", "tenor", "reddit"] as const;
+const MEME_SOURCES = ["giphy", "reddit1", "reddit2"] as const;
 
 function MemeSticker({ score, dimension, idx = 0 }: { score: number; dimension?: string; idx?: number }) {
   let template: string, top: string, bottom: string, searchTerm: string;
