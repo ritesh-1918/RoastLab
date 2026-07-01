@@ -23,47 +23,53 @@ function makeClient(baseURL: string, apiKey: string): OpenAI {
  * Add/remove entries here as keys change.
  */
 export function getProviders(): Provider[] {
+  // Filter by key presence BEFORE constructing OpenAI clients — the SDK throws
+  // synchronously on an empty apiKey, so building all 5 clients up front would
+  // crash this function (and every caller) whenever any single key is unset.
   return [
     // Groq — only working reliable free vision model. Both keys use the same
     // model (llama-4-scout is Groq's ONLY vision model) to double free quota.
     {
       name: 'groq-1',
-      client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_1 ?? ''),
+      baseURL: 'https://api.groq.com/openai/v1',
+      apiKey: process.env.GROQ_KEY_1 ?? '',
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      supportsVision: true,
     },
     {
       name: 'groq-2',
-      client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_2 ?? ''),
+      baseURL: 'https://api.groq.com/openai/v1',
+      apiKey: process.env.GROQ_KEY_2 ?? '',
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      supportsVision: true,
     },
     // OpenRouter free vision models — verified free + image-capable (Nov 2026).
     // llama-4-*:free went paid; these are the current actually-free vision models.
     {
       name: 'openrouter-gemma',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_KEY_1 ?? '',
       model: 'google/gemma-4-26b-a4b-it:free',
-      supportsVision: true,
     },
     {
       name: 'openrouter-nemotron',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_KEY_2 ?? '',
       model: 'nvidia/nemotron-nano-12b-v2-vl:free',
-      supportsVision: true,
     },
     // Last resort — OpenRouter auto free router (picks any available free model)
     {
       name: 'openrouter-auto',
-      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_KEY_1 ?? '',
       model: 'openrouter/free',
-      supportsVision: true,
     },
-  ].filter((p) => {
-    // Skip providers with missing keys at runtime
-    const key = p.client.apiKey;
-    return key && key.length > 10;
-  });
+  ]
+    .filter((p) => p.apiKey && p.apiKey.length > 10)
+    .map((p) => ({
+      name: p.name,
+      client: makeClient(p.baseURL, p.apiKey),
+      model: p.model,
+      supportsVision: true,
+    }));
 }
 
 /** True when worth trying next provider (rate limit, quota, server error, model not found, network). */
