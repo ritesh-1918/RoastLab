@@ -11,11 +11,11 @@ const FROM = process.env.RESEND_FROM_EMAIL ?? 'RoastLab <onboarding@resend.dev>'
 
 const LOGO_SVG = `<svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="13" stroke="#E8334A" stroke-width="1.5"/><circle cx="16" cy="16" r="7" stroke="#E8334A" stroke-width="1.5"/><circle cx="16" cy="16" r="2" fill="#E8334A"/><line x1="16" y1="2" x2="16" y2="8" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="24" x2="16" y2="30" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="16" x2="8" y2="16" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/><line x1="24" y1="16" x2="30" y2="16" stroke="#E8334A" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
-function scoreColor(s: number) {
+export function scoreColor(s: number) {
   return s >= 70 ? '#32D74B' : s >= 45 ? '#FFD60A' : '#FF2D55';
 }
 
-function scoreVerdict(s: number) {
+export function scoreVerdict(s: number) {
   if (s >= 75) return 'Actually fire 🔥';
   if (s >= 60) return 'Mid but salvageable 😐';
   if (s >= 40) return 'bestie WHAT IS THIS 💀';
