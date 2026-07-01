@@ -891,7 +891,7 @@ function AnalyzeContent() {
         setDone(true);
       })
       .catch(() => setError("Failed to load cached audit."));
-  }, [cachedId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cachedId]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -966,6 +966,7 @@ function AnalyzeContent() {
       })
       .catch(e => { if (e.name !== "AbortError") setError(e.message); });
     return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, tier, paid, upload, isLoaded, isSignedIn]);
 
   useEffect(() => {

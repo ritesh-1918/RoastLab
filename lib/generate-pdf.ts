@@ -311,7 +311,7 @@ export async function generateRoastPDF(opts: { url: string; score: number; dims:
     doc.text("/100", scoreX + 6, y + 7);
 
     // Summary — with real bold/strike rendering
-    let ty = drawRichText(summarySegs, MARGIN + 6, y + 13, CONTENT_W - 12, {
+    const ty = drawRichText(summarySegs, MARGIN + 6, y + 13, CONTENT_W - 12, {
       size: 8.5, color: [180, 180, 200], lineHeight: 4.5, italic: true,
     });
     let fy = ty + 6;
