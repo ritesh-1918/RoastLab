@@ -97,44 +97,40 @@ export async function POST(req: NextRequest) {
         } else {
           const isPremium = tier === 'full' || paid;
 
-          if (isPremium) {
-            send({ type: 'status', payload: { message: 'Deep crawl initiated — scanning every pixel of your crime scene…' } });
+          // Both free + full tiers get full crawl + multi-screenshot capture —
+          // free tier just analyzes fewer dimensions afterward, not less data.
+          send({ type: 'status', payload: { message: 'Website live hai ya nahi check kar rahe hain — bot-check clear hone ka wait…' } });
 
-            // Full parallel deep crawl: 3 screenshots + main crawl + HTML data + subpages
-            const [captured, multiShots, mainCrawl, siteData, subpageData] = await Promise.all([
-              captureScreenshot(url!),
-              captureMultipleScreenshots(url!),
-              crawlPage(url!),
-              extractSiteData(url!),
-              crawlSubpages(url!),
-            ]);
+          const [captured, multiShots, mainCrawl, siteData, subpageData] = await Promise.all([
+            captureScreenshot(url!),
+            captureMultipleScreenshots(url!),
+            crawlPage(url!),
+            extractSiteData(url!),
+            isPremium ? crawlSubpages(url!) : Promise.resolve(''),
+          ]);
 
-            imageBase64 = captured.base64;
-            mimeType = captured.mimeType;
-            // Emit all screenshot URLs (multi-scroll filmstrip)
-            const allShots = [captured.screenshotUrl, ...multiShots.filter(u => u !== captured.screenshotUrl)];
-            send({ type: 'screenshots', payload: { urls: allShots } });
+          imageBase64 = captured.base64;
+          mimeType = captured.mimeType;
 
-            const parts = [mainCrawl, siteData, subpageData].filter(p => p && p.length > 50);
-            pageContent = parts.join('\n\n---\n\n') || undefined;
-
-            const totalChars = parts.reduce((s, p) => s + p.length, 0);
-            send({ type: 'status', payload: { message: `Deep crawl complete — ${totalChars.toLocaleString()} chars analyzed across ${parts.length} data sources. Unleashing all 9 roast dimensions…` } });
-          } else {
-            send({ type: 'status', payload: { message: 'Crawling your crime scene…' } });
-            const [captured, crawled] = await Promise.all([
-              captureScreenshot(url!),
-              crawlPage(url!),
-            ]);
-            imageBase64 = captured.base64;
-            mimeType = captured.mimeType;
-            pageContent = crawled || undefined;
-            send({ type: 'screenshots', payload: { urls: [captured.screenshotUrl] } });
-            const contentMsg = pageContent
-              ? `Crawled ${pageContent.length} chars of content — loading roast cannon…`
-              : 'Screenshot captured — loading roast cannon…';
-            send({ type: 'status', payload: { message: contentMsg } });
+          // Stream screenshots one at a time (staggered) instead of dumping all at once
+          const allShots = [captured.screenshotUrl, ...multiShots.filter(u => u !== captured.screenshotUrl)];
+          for (let i = 0; i < allShots.length; i++) {
+            send({ type: 'screenshot', payload: { url: allShots[i] } });
+            if (i < allShots.length - 1) await new Promise(r => setTimeout(r, 350));
           }
+
+          const parts = [mainCrawl, siteData, subpageData].filter(p => p && p.length > 50);
+          pageContent = parts.join('\n\n---\n\n') || undefined;
+
+          const totalChars = parts.reduce((s, p) => s + p.length, 0);
+          send({
+            type: 'status',
+            payload: {
+              message: totalChars > 0
+                ? `Crawl complete — ${totalChars.toLocaleString()} chars analyzed across ${parts.length} data sources. Unleashing roast cannon…`
+                : 'Screenshots captured — loading roast cannon…',
+            },
+          });
         }
 
         const dimensions = tier === 'full' ? [...DIMENSIONS] : [...FREE_DIMENSIONS];
