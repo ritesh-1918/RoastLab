@@ -3,7 +3,7 @@
  * RoastLab PDF report — uses jsPDF for a real .pdf download (no browser print dialog).
  * Dynamic import keeps jsPDF out of the main bundle.
  * Mirrors the site's roast tone: verdict headline, quotes, emphasis markup rendered
- * as actual bold/strike text instead of raw **stars**/~~tildes~~.
+ * as actual bold/strike text instead of raw markdown-style markers.
  */
 
 const SEV_COLOR: Record<string, [number, number, number]> = {
