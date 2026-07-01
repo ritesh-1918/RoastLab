@@ -24,7 +24,8 @@ function makeClient(baseURL: string, apiKey: string): OpenAI {
  */
 export function getProviders(): Provider[] {
   return [
-    // Groq first — confirmed working, fast, free tier with vision
+    // Groq — only working reliable free vision model. Both keys use the same
+    // model (llama-4-scout is Groq's ONLY vision model) to double free quota.
     {
       name: 'groq-1',
       client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_1 ?? ''),
@@ -34,30 +35,28 @@ export function getProviders(): Provider[] {
     {
       name: 'groq-2',
       client: makeClient('https://api.groq.com/openai/v1', process.env.GROQ_KEY_2 ?? ''),
-      model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       supportsVision: true,
     },
-    // OpenRouter free fallback
+    // OpenRouter free vision models — verified free + image-capable (Nov 2026).
+    // llama-4-*:free went paid; these are the current actually-free vision models.
     {
-      name: 'openrouter-1',
+      name: 'openrouter-gemma',
       client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
-      model: 'meta-llama/llama-4-scout:free',
+      model: 'google/gemma-4-26b-a4b-it:free',
       supportsVision: true,
     },
     {
-      name: 'openrouter-2',
+      name: 'openrouter-nemotron',
       client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_2 ?? ''),
-      model: 'meta-llama/llama-4-maverick:free',
+      model: 'nvidia/nemotron-nano-12b-v2-vl:free',
       supportsVision: true,
     },
-    // Gemini last resort
+    // Last resort — OpenRouter auto free router (picks any available free model)
     {
-      name: 'gemini-1',
-      client: makeClient(
-        'https://generativelanguage.googleapis.com/v1beta/openai/',
-        process.env.GEMINI_API_KEY ?? ''
-      ),
-      model: 'gemini-2.0-flash',
+      name: 'openrouter-auto',
+      client: makeClient('https://openrouter.ai/api/v1', process.env.OPENROUTER_KEY_1 ?? ''),
+      model: 'openrouter/free',
       supportsVision: true,
     },
   ].filter((p) => {
