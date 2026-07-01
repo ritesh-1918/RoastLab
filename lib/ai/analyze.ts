@@ -137,7 +137,7 @@ MANDATORY OUTPUT FORMAT — return ONLY this JSON:
   "findings": [
     {
       "severity": "critical|high|medium|good",
-      "title": "<viral tweet roast, 8-15 words, specific to THIS page, must sting AND be funny>",
+      "title": "<viral tweet roast, 8-15 words, specific to THIS page, must sting AND be funny. Wrap the single most savage word/phrase in **double-asterisks** to highlight it, and optionally wrap a 'corrected' fake-polite phrase in ~~tildes~~ right before the real insult, e.g. 'this is ~~a minor issue~~ a **crime scene**'>",
       "quote": "<exact text or element name from this page — if you cannot find one use a UI element you can see>",
       "action": "<real fix, delivered with personality, not a JIRA ticket>"
     }
@@ -152,7 +152,8 @@ NON-NEGOTIABLE:
 5. "action" sounds human and savage, not corporate
 6. Minimum 4 findings, maximum 6
 7. ZERO generic advice — if it could apply to any random website, rewrite it to be specific
-8. Score must reflect reality — harshness without accuracy = zero credibility`;
+8. Score must reflect reality — harshness without accuracy = zero credibility
+9. Use **bold** and ~~strike~~ markup in "title" sparingly — one highlighted word max, one struck phrase max, never both stacked on the same word`;
 }
 
 // ─── Single dimension analysis ────────────────────────────────────────────────

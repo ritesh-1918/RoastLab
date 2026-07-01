@@ -106,6 +106,37 @@ function SiteFrame({ imgUrl, siteUrl }: { imgUrl: string; siteUrl: string }) {
   );
 }
 
+/* ─── Emphasis renderer — **bold** highlighted, ~~strike~~ crossed-out ──────
+   Lets AI-generated roast titles/summaries carry their own emphasis: wrap the
+   savage word in **stars** for a bright highlighted chip, or ~~tildes~~ for
+   a struck-through "correction" gag. Falls back to plain text if none used. */
+function HighlightText({ text, accentColor = "#E8334A" }: { text: string; accentColor?: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|~~[^~]+~~)/g).filter(Boolean);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          const word = part.slice(2, -2);
+          return (
+            <span key={i} style={{
+              background: `${accentColor}22`, color: accentColor, fontWeight: 900,
+              padding: "1px 5px", borderRadius: 4, fontSize: "0.95em",
+              border: `1px solid ${accentColor}55`, whiteSpace: "nowrap",
+            }}>{word}</span>
+          );
+        }
+        if (part.startsWith("~~") && part.endsWith("~~")) {
+          const word = part.slice(2, -2);
+          return (
+            <span key={i} style={{ textDecoration: "line-through", opacity: 0.55, fontStyle: "italic" }}>{word}</span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 /* ─── Telugu/Indian meme sticker ─────────────────────────────────────────── */
 function enc(s: string) {
   return s.replace(/_/g,"__").replace(/\//g,"~s").replace(/ /g,"_").replace(/\?/g,"~q").replace(/&/g,"~a").replace(/%/g,"~p");
@@ -164,25 +195,45 @@ const DIM_MEMES: Record<string, (score: number) => { template: string; top: stri
 };
 
 function MemeSticker({ score, dimension }: { score: number; dimension?: string }) {
-  let template: string, top: string, bottom: string;
+  let template: string, top: string, bottom: string, searchTerm: string;
   const hype = score >= 65;
 
   if (dimension && DIM_MEMES[dimension]) {
     const m = DIM_MEMES[dimension](score);
     template = m.template; top = m.top; bottom = m.bottom;
+    searchTerm = hype ? `${dimension.replace(/_/g, " ")} success celebration meme` : `${dimension.replace(/_/g, " ")} fail cringe meme`;
   } else if (score >= 85) {
     template = "success";      top = enc("site score 85 plus");       bottom = enc("bhai actually sent it and it slapped");
+    searchTerm = "excellent amazing celebration meme";
   } else if (score >= 65) {
     template = "success";      top = enc(`score ${score}/100 fire`);  bottom = enc("ab toh proud feel ho raha hai");
+    searchTerm = "proud fire success meme";
   } else if (score >= 50) {
     template = "harold";       top = enc("tera website dekh ke");     bottom = enc("okay-ish but could be better bhai");
+    searchTerm = "mediocre okay meh meme";
   } else if (score >= 30) {
     template = "fine";         top = enc(`website score ${score}`);   bottom = enc("yaar ye kya kar diya tune");
+    searchTerm = "this is fine disaster meme";
   } else {
     template = "disastergirl"; top = enc("arey baap re");             bottom = enc("ye site kisne banaya bhai");
+    searchTerm = "epic fail cringe disaster meme";
   }
 
-  const memeUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
+  const fallbackUrl = `https://api.memegen.link/images/${template}/${top}/${bottom}.png`;
+  const [memeUrl, setMemeUrl] = useState(fallbackUrl);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/meme?q=${encodeURIComponent(searchTerm)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { url: string | null } | null) => {
+        if (!cancelled && data?.url) setMemeUrl(data.url);
+      })
+      .catch(() => {/* keep fallback */});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const badgeColor = hype ? "#32D74B" : "#E8334A";
   const tiltDeg = hype ? 2 : -2;
 
@@ -205,7 +256,7 @@ function MemeSticker({ score, dimension }: { score: number; dimension?: string }
         <div style={{ padding: 6, background: "#fff", borderRadius: 12, boxShadow: hype ? "0 8px 32px rgba(50,215,75,0.4), 0 2px 8px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)", transform: `rotate(${tiltDeg}deg)`, display: "inline-block" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={memeUrl} alt="meme" style={{ width: 260, height: "auto", borderRadius: 8, display: "block", minHeight: 160 }} loading="lazy"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}/>
+            onError={(e) => { if (memeUrl !== fallbackUrl) { setMemeUrl(fallbackUrl); } else { (e.currentTarget as HTMLImageElement).style.display = 'none'; } }}/>
         </div>
         <div style={{ position: "absolute", top: -10, right: -10, width: 36, height: 36, borderRadius: "50%", background: badgeColor, border: "3px solid #09090B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff", boxShadow: `0 2px 8px ${badgeColor}80` }}>
           {score}
@@ -315,7 +366,7 @@ function Finding({ f, i }: { f: Finding; i: number }) {
         <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", padding: "2px 7px", border: `1px solid ${s.color}`, color: s.color, fontFamily: MONO }}>
           {f.severity.toUpperCase()}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 800, color: "#E0E0E0", lineHeight: 1.3 }}>{f.title}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "#E0E0E0", lineHeight: 1.3 }}><HighlightText text={f.title} accentColor={s.color} /></span>
       </div>
       {/* Quote */}
       {f.quote && (
@@ -370,7 +421,7 @@ function CrimeSceneCard({ result, idx, isWorst }: { result: DimensionResult; idx
                   <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
                     style={{ marginBottom: 10, padding: "7px 10px", background: "#0A0A00", borderLeft: `3px solid ${f.severity === "critical" ? TAPE : f.severity === "high" ? "#FF4400" : "#333"}` }}>
                     <div style={{ fontFamily: MONO, fontSize: 8, color: "#333", marginBottom: 3 }}>EVIDENCE {String(i + 1).padStart(2, "0")} [{f.severity.toUpperCase()}]</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#DDD", marginBottom: 3 }}>{f.title}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#DDD", marginBottom: 3 }}><HighlightText text={f.title} accentColor={TAPE} /></div>
                     {f.quote && <div style={{ fontSize: 10, fontStyle: "italic", color: "#444", marginBottom: 3 }}>&ldquo;{f.quote}&rdquo;</div>}
                     <div style={{ fontFamily: MONO, fontSize: 10, color: "#555" }}><span style={{ color: TAPE }}>REMEDY → </span>{f.action}</div>
                   </motion.div>
@@ -448,7 +499,7 @@ function HackerCard({ result, idx, isWorst }: { result: DimensionResult; idx: nu
                   return (
                     <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
                       style={{ marginBottom: 9, paddingLeft: 10, borderLeft: `2px solid ${fc}` }}>
-                      <div style={{ fontSize: 8, color: "#004A15", marginBottom: 2 }}>[{String(i + 1).padStart(2, "0")}] {f.severity.toUpperCase()} :: {f.title}</div>
+                      <div style={{ fontSize: 8, color: "#004A15", marginBottom: 2 }}>[{String(i + 1).padStart(2, "0")}] {f.severity.toUpperCase()} :: <HighlightText text={f.title} accentColor={fc} /></div>
                       {f.quote && <div style={{ fontSize: 9, color: "#003010", fontStyle: "italic", marginBottom: 2 }}>{'// '}&ldquo;{f.quote}&rdquo;</div>}
                       <div style={{ fontSize: 9, color: "#00AA28" }}><span style={{ color: GREEN }}>PATCH: </span>{f.action}</div>
                     </motion.div>
@@ -516,7 +567,7 @@ function BreakingNewsCard({ result, idx, isWorst }: { result: DimensionResult; i
                     style={{ marginBottom: 8, borderBottom: "1px dotted #C0A080", paddingBottom: 7 }}>
                     <div style={{ display: "flex", gap: 5, alignItems: "flex-start", marginBottom: 3 }}>
                       <span style={{ fontSize: 7, fontWeight: 900, background: RED, color: "#FFE600", padding: "1px 4px", flexShrink: 0, marginTop: 2 }}>{f.severity.toUpperCase()}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{f.title}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.3 }}><HighlightText text={f.title} accentColor={RED} /></span>
                     </div>
                     {f.quote && <p style={{ margin: "0 0 3px", fontSize: 10, fontStyle: "italic", color: "#6A4020", paddingLeft: 6 }}>&ldquo;{f.quote}&rdquo;</p>}
                     <p style={{ margin: 0, fontSize: 10, color: "#4A2010" }}><span style={{ fontWeight: 900, color: RED }}>EDITOR&apos;S NOTE: </span>{f.action}</p>
@@ -602,7 +653,7 @@ function MedicalCard({ result, idx, isWorst }: { result: DimensionResult; idx: n
                       style={{ marginBottom: 9, padding: "7px 9px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(0,181,165,0.1)", borderRadius: 2 }}>
                       <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 3 }}>
                         <span style={{ fontSize: 7, color: fc, fontFamily: MONO, letterSpacing: "0.08em" }}>[{f.severity.toUpperCase()}]</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#C0EDED" }}>{f.title}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#C0EDED" }}><HighlightText text={f.title} accentColor={fc} /></span>
                       </div>
                       {f.quote && <div style={{ fontSize: 10, color: "#4A8A87", fontStyle: "italic", marginBottom: 3 }}>&ldquo;{f.quote}&rdquo;</div>}
                       <div style={{ fontSize: 9, color: "#6A9E9C", fontFamily: MONO }}><span style={{ color: TEAL }}>Rx → </span>{f.action}</div>

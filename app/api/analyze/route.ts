@@ -112,11 +112,17 @@ export async function POST(req: NextRequest) {
           imageBase64 = captured.base64;
           mimeType = captured.mimeType;
 
-          // Stream screenshots one at a time (staggered) instead of dumping all at once
+          // Stream screenshots one at a time — narrates as "scroll down → capture section"
           const allShots = [captured.screenshotUrl, ...multiShots.filter(u => u !== captured.screenshotUrl)];
           for (let i = 0; i < allShots.length; i++) {
+            const sectionMsg = i === 0
+              ? 'Capturing hero section (top of page)…'
+              : i === allShots.length - 1
+              ? 'Scrolled to footer — capturing final section…'
+              : `Scrolling down — capturing section ${i + 1}/${allShots.length}…`;
+            send({ type: 'status', payload: { message: sectionMsg } });
             send({ type: 'screenshot', payload: { url: allShots[i] } });
-            if (i < allShots.length - 1) await new Promise(r => setTimeout(r, 350));
+            if (i < allShots.length - 1) await new Promise(r => setTimeout(r, 400));
           }
 
           const parts = [mainCrawl, siteData, subpageData].filter(p => p && p.length > 50);
