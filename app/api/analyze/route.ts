@@ -122,7 +122,9 @@ export async function POST(req: NextRequest) {
               : `Scrolling down — capturing section ${i + 1}/${allShots.length}…`;
             send({ type: 'status', payload: { message: sectionMsg } });
             send({ type: 'screenshot', payload: { url: allShots[i] } });
-            if (i < allShots.length - 1) await new Promise(r => setTimeout(r, 400));
+            // ~1s per section so it visibly reads as scrolling down the page,
+            // not a single instant dump of every capture at once
+            if (i < allShots.length - 1) await new Promise(r => setTimeout(r, 950));
           }
 
           const parts = [mainCrawl, siteData, subpageData].filter(p => p && p.length > 50);
